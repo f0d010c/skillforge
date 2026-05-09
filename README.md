@@ -1,5 +1,9 @@
 # Codex SkillForge
 
+[![CI](https://github.com/f0d010c/skillforge/actions/workflows/ci.yml/badge.svg)](https://github.com/f0d010c/skillforge/actions/workflows/ci.yml)
+[![npm version](https://img.shields.io/npm/v/codex-skillforge.svg)](https://www.npmjs.com/package/codex-skillforge)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 **ESLint for Codex skills and plugins.**
 
 SkillForge helps Codex extension authors scaffold, lint, smoke-test, inspect, and package skills/plugins before they publish or submit them to a marketplace.
@@ -29,25 +33,44 @@ Codex skills and plugins are small, powerful folders. They are also easy to get 
 
 SkillForge is not a marketplace. It is the publish-readiness check you run before sharing a Codex skill/plugin repo.
 
-## Quick Start
+## Install
 
-From this repo:
+Until the npm package is published, install from GitHub:
 
 ```bash
+git clone https://github.com/f0d010c/skillforge.git
+cd skillforge
 npm install
 npm run build
-
-node dist/cli.js init skill ./my-skill --name my-skill
-node dist/cli.js lint ./my-skill
-node dist/cli.js smoke ./my-skill
-node dist/cli.js pack ./my-skill
 ```
 
-When published to npm:
+Then run:
+
+```bash
+node dist/cli.js lint .
+```
+
+After npm publish:
+
+```bash
+npx codex-skillforge lint .
+```
+
+## Quick Start
+
+Create and check a new skill:
 
 ```bash
 npx codex-skillforge init skill ./my-skill --name my-skill
 npx codex-skillforge lint ./my-skill
+npx codex-skillforge smoke ./my-skill
+npx codex-skillforge pack ./my-skill
+```
+
+Check an existing Codex extension repo:
+
+```bash
+npx codex-skillforge lint .
 ```
 
 ## Commands
@@ -173,4 +196,14 @@ npm run build
 npm test
 npm audit
 npm pack --dry-run
+```
+
+Verify from a clean directory after npm publish:
+
+```bash
+mkdir skillforge-smoke
+cd skillforge-smoke
+npx codex-skillforge --version
+npx codex-skillforge init skill ./demo-skill --name demo-skill
+npx codex-skillforge lint ./demo-skill
 ```
