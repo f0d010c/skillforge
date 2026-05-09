@@ -2,21 +2,12 @@
 
 SkillForge was tested against a small sample of public Codex skill/plugin repositories to validate that the rules catch useful issues without requiring project-specific setup.
 
-## Sample
+## What The Audit Proved
 
-- `openai/codex-plugin-cc`
-- `sigridjineth/oh-my-codex`
-- `OutlineDriven/odin-codex-plugin`
-- `zeabur/agent-skills`
-- `TheGreenCedar/codex-autoresearch`
-
-## Results
-
-- `TheGreenCedar/codex-autoresearch`: passed after tuning path parsing for inline script examples.
-- `openai/codex-plugin-cc`: surfaced one weak trigger-description warning.
-- `zeabur/agent-skills`: surfaced a plugin package-name/folder-name mismatch as a warning.
-- `OutlineDriven/odin-codex-plugin`: surfaced missing references, long descriptions, late trigger wording, and unreferenced scripts across a large skill collection.
-- `sigridjineth/oh-my-codex`: surfaced many trigger-description warnings, large `SKILL.md` files, missing figure assets, and hook feature-flag documentation.
+- Repository-level collection linting works on real-world layouts.
+- Plugin manifest checks can distinguish hard failures from advisory warnings.
+- Skill description checks are useful, but should remain warnings because wording is partly subjective.
+- Path-resolution rules need to avoid treating inline command examples as file references.
 
 ## Rule Changes From The Audit
 
