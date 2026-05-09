@@ -4,7 +4,7 @@
   "description": "Creator tooling for OpenAI Codex skills and plugins.",
   "type": "module",
   "bin": {
-    "codex-skillforge": "./dist/cli.js"
+    "codex-skillforge": "dist/cli.js"
   },
   "files": [
     "dist",
