@@ -188,7 +188,7 @@ async function lintSkill(root: string, maxSkillMdLines: number): Promise<Issue[]
     if (name !== hyphenName(name) || name.length > 64) {
       issues.push({ level: "error", code: "skill.name.invalid", message: "Skill name must be lowercase hyphen-case and <= 64 characters.", file: skillPath });
     }
-    if (name !== path.basename(root)) {
+    if (name !== path.basename(root) && !root.includes(`${path.sep}plugins${path.sep}`) && !root.includes(`${path.sep}.agents${path.sep}skills${path.sep}`)) {
       issues.push({ level: "warning", code: "skill.name.folder-mismatch", message: "Skill folder name should match frontmatter name for predictable installs.", file: skillPath });
     }
     issues.push(...descriptionIssues(description, skillPath));
@@ -227,13 +227,13 @@ function descriptionIssues(description: string, file: string): Issue[] {
 
 async function referenceIssues(root: string, content: string, file: string): Promise<Issue[]> {
   const issues: Issue[] = [];
-  const markdownLinks = Array.from(content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)).map((match) => match[1]);
-  const inlinePaths = Array.from(content.matchAll(/`((?:scripts|references|assets|agents)\/[^`]+)`/g)).map((match) => match[1]);
+  const markdownLinks = Array.from(content.matchAll(/\[[^\]]+\]\(([^)\s]+)\)/g)).map((match) => match[1]);
+  const inlinePaths = Array.from(content.matchAll(/`((?:scripts|references|assets|agents)\/[A-Za-z0-9._/-]+)`/g)).map((match) => match[1]);
 
   for (const ref of [...markdownLinks, ...inlinePaths]) {
     if (/^[a-z]+:\/\//i.test(ref) || ref.startsWith("#")) continue;
     const clean = ref.split("#")[0];
-    if (!clean) continue;
+    if (!clean || clean.includes("<") || clean.includes(">") || clean.includes("*") || clean.includes("\\")) continue;
     const fullPath = path.resolve(path.dirname(file), clean);
     if (!isInside(root, fullPath) || !(await fs.pathExists(fullPath))) {
       issues.push({ level: "error", code: "reference.missing", message: `Referenced file does not exist: ${ref}`, file });
@@ -293,7 +293,7 @@ async function lintPlugin(root: string): Promise<Issue[]> {
 
   const folderName = path.basename(root);
   if (manifest.name !== folderName) {
-    issues.push({ level: "error", code: "plugin.name.mismatch", message: `Manifest name "${manifest.name}" must match folder name "${folderName}".`, file: manifestPath });
+    issues.push({ level: "warning", code: "plugin.name.mismatch", message: `Manifest name "${manifest.name}" differs from folder name "${folderName}". This is valid for some repo-level packages but can confuse local plugin installs.`, file: manifestPath });
   }
   if (manifest.name !== hyphenName(manifest.name) || manifest.name.length > 64) {
     issues.push({ level: "error", code: "plugin.name.invalid", message: "Plugin name must be lowercase hyphen-case and <= 64 characters.", file: manifestPath });

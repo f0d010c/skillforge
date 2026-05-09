@@ -1,8 +1,21 @@
 # Codex SkillForge
 
-Creator tooling for OpenAI Codex skills and plugins: scaffold, lint, smoke-test, inspect, and package ecosystem artifacts.
+**ESLint for Codex skills and plugins.**
 
-SkillForge is the “Prettier + ESLint + create-vite” layer for Codex creators. It is not a marketplace. It helps you build skills and plugins that are clean enough to install locally, share in a repo, or submit to a marketplace.
+SkillForge helps Codex extension authors scaffold, lint, smoke-test, inspect, and package skills/plugins before they publish or submit them to a marketplace.
+
+```bash
+npx codex-skillforge lint .
+```
+
+Example output:
+
+```text
+SkillForge plugin lint found 3 issue(s):
+[ERROR] plugin.skills.missing - Manifest path does not exist: ./skills/
+[WARNING] skill.description.vague - Description should clearly say what the skill does and when Codex should use it.
+[ERROR] metadata.openai-yaml.legacy-shape - agents/openai.yaml fields must live under interface:
+```
 
 ## Why This Exists
 
@@ -14,9 +27,11 @@ Codex skills and plugins are small, powerful folders. They are also easy to get 
 - missing bundled skills, hooks, MCP, app, or asset files
 - plugins that work locally but are not marketplace-ready
 
-SkillForge catches those problems before users do.
+SkillForge is not a marketplace. It is the publish-readiness check you run before sharing a Codex skill/plugin repo.
 
 ## Quick Start
+
+From this repo:
 
 ```bash
 npm install
@@ -28,7 +43,7 @@ node dist/cli.js smoke ./my-skill
 node dist/cli.js pack ./my-skill
 ```
 
-When published to npm, the same flow becomes:
+When published to npm:
 
 ```bash
 npx codex-skillforge init skill ./my-skill --name my-skill
@@ -53,6 +68,29 @@ codex-skillforge pack ./my-plugin
 ```
 
 `lint .` can inspect a repository-style collection and recursively find skill/plugin folders under paths like `.agents/skills` and `plugins`.
+
+## GitHub Action
+
+Use SkillForge in CI:
+
+```yaml
+name: SkillForge
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint-codex-extensions:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: f0d010c/skillforge@main
+        with:
+          path: .
+          format: sarif
+```
 
 ## Config
 
@@ -120,13 +158,7 @@ $HOME/.agents/plugins/marketplace.json
 - `INSTALL.md`
 - `marketplace-entry.json`
 
-## CI
-
-```yaml
-- run: npx codex-skillforge lint . --format sarif
-```
-
-Exit codes:
+## Exit Codes
 
 - `0`: pass, or warnings only
 - `1`: lint errors or failed smoke checks

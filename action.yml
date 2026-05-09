@@ -1,0 +1,32 @@
+name: "Codex SkillForge"
+description: "Lint Codex skills and plugins in CI."
+author: "f0d010c"
+
+inputs:
+  path:
+    description: "Skill, plugin, or repository path to lint."
+    required: false
+    default: "."
+  format:
+    description: "Output format: text, json, or sarif."
+    required: false
+    default: "text"
+
+runs:
+  using: "composite"
+  steps:
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: "20"
+    - name: Install SkillForge dependencies
+      shell: bash
+      run: npm ci
+      working-directory: ${{ github.action_path }}
+    - name: Build SkillForge
+      shell: bash
+      run: npm run build
+      working-directory: ${{ github.action_path }}
+    - name: Run SkillForge
+      shell: bash
+      run: node "${{ github.action_path }}/dist/cli.js" lint "${{ inputs.path }}" --format "${{ inputs.format }}"
