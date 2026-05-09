@@ -1,0 +1,11 @@
+{
+  "name": "team-plugin",
+  "version": "0.1.0",
+  "description": "Valid team plugin fixture.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Team Plugin",
+    "shortDescription": "Collection plugin fixture.",
+    "category": "Productivity"
+  }
+}

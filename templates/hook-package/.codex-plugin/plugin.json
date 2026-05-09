@@ -1,0 +1,11 @@
+{
+  "name": "__SKILLFORGE_NAME__",
+  "version": "0.1.0",
+  "description": "Codex hook package for __SKILLFORGE_TITLE__ workflows.",
+  "interface": {
+    "displayName": "__SKILLFORGE_TITLE__",
+    "shortDescription": "Lifecycle hooks for __SKILLFORGE_TITLE__ workflows.",
+    "category": "Productivity"
+  },
+  "hooks": "./hooks/hooks.json"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "__SKILLFORGE_NAME__",
+  "type": "skill",
+  "examples": [
+    {
+      "prompt": "Use $__SKILLFORGE_NAME__ to complete a focused workflow.",
+      "shouldTrigger": true
+    }
+  ],
+  "checks": {
+    "maxSkillMdLines": 500,
+    "requireOpenAiYaml": false,
+    "allowScripts": true
+  }
+}

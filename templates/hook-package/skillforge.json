@@ -1,0 +1,10 @@
+{
+  "name": "__SKILLFORGE_NAME__",
+  "type": "plugin",
+  "examples": [],
+  "checks": {
+    "maxSkillMdLines": 500,
+    "requireOpenAiYaml": false,
+    "allowScripts": true
+  }
+}

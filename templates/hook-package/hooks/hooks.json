@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node ./hooks/example.js",
+            "statusMessage": "Running __SKILLFORGE_TITLE__ stop hook"
+          }
+        ]
+      }
+    ]
+  }
+}

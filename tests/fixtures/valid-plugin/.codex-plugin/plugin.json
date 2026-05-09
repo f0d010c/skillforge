@@ -1,0 +1,11 @@
+{
+  "name": "valid-plugin",
+  "version": "0.1.0",
+  "description": "Valid plugin fixture.",
+  "interface": {
+    "displayName": "Valid Plugin",
+    "shortDescription": "A valid plugin fixture.",
+    "category": "Productivity"
+  },
+  "skills": "./skills/"
+}

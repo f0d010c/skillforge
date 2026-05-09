@@ -1,0 +1,6 @@
+interface:
+  display_name: "Valid Skill"
+  short_description: "A valid SkillForge fixture."
+  default_prompt: "Use $valid-skill to validate a fixture."
+policy:
+  allow_implicit_invocation: true

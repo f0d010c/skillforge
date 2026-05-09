@@ -1,0 +1,6 @@
+interface:
+  display_name: "__SKILLFORGE_TITLE__"
+  short_description: "Reusable Codex workflow for __SKILLFORGE_TITLE__ tasks."
+  default_prompt: "Use $__SKILLFORGE_NAME__ to help with this task."
+policy:
+  allow_implicit_invocation: true
