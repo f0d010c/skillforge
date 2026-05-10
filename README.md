@@ -33,6 +33,22 @@ Codex skills and plugins are small, powerful folders. They are also easy to get 
 
 SkillForge is not a marketplace. It is the publish-readiness check you run before sharing a Codex skill/plugin repo.
 
+## Security Model
+
+SkillForge is a CLI linter, not a Codex runtime plugin. Running `lint`, `doctor`, and `smoke` reads local files and reports issues; it does not install skills, load plugins into Codex, or execute scripts from the target project.
+
+Commands that write files are explicit:
+
+- `init` creates scaffold files in the destination you choose.
+- `pack` writes release artifacts to an output directory.
+
+For cautious use, pin the npm version, review the source, and start with read-only commands:
+
+```bash
+npx codex-skillforge@0.1.1 lint .
+npx codex-skillforge@0.1.1 smoke ./path/to/skill
+```
+
 ## Install
 
 Run with npm:
@@ -53,6 +69,10 @@ npx codex-skillforge lint .
 See a tiny working example repo:
 
 [f0d010c/codex-skillforge-demo](https://github.com/f0d010c/codex-skillforge-demo)
+
+See real-world scan notes:
+
+[docs/real-world-scan.md](docs/real-world-scan.md)
 
 ## Quick Start
 
