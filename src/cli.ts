@@ -12,7 +12,7 @@ const program = new Command();
 program
   .name("codex-skillforge")
   .description("Creator tooling for OpenAI Codex skills and plugins.")
-  .version("0.1.0")
+  .version("0.1.1")
   .exitOverride();
 
 program
@@ -30,8 +30,9 @@ program
   .command("lint")
   .argument("[path]", "skill or plugin path", ".")
   .option("-f, --format <format>", "text, json, or sarif", parseFormat, "text")
-  .action(async (targetPath: string, options: { format: ReportFormat }) => {
-    const result = await lintCommand(targetPath, options.format);
+  .option("--strict", "include advisory checks such as description quality, large skill bodies, unreferenced scripts, and plugin name/folder mismatch")
+  .action(async (targetPath: string, options: { format: ReportFormat; strict?: boolean }) => {
+    const result = await lintCommand(targetPath, options.format, { strict: options.strict });
     console.log(result.output);
     process.exitCode = result.exitCode;
   });

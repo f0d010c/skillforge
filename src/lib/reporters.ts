@@ -28,7 +28,8 @@ function toText(result: LintResult): string {
   const lines = [`SkillForge ${result.kind} lint found ${result.issues.length} issue(s)${checked}:`];
   for (const issue of result.issues) {
     const location = issue.file ? ` ${issue.file}` : "";
-    lines.push(`[${issue.level.toUpperCase()}] ${issue.code}${location} - ${issue.message}`);
+    const confidence = issue.confidence ? ` ${issue.confidence}-confidence` : "";
+    lines.push(`[${issue.level.toUpperCase()}${confidence}] ${issue.code}${location} - ${issue.message}`);
   }
   return lines.join("\n");
 }
@@ -49,7 +50,7 @@ function toSarif(result: LintResult): unknown {
         results: result.issues.map((issue) => ({
           ruleId: issue.code,
           level: issue.level === "error" ? "error" : "warning",
-          message: { text: issue.message },
+          message: { text: issue.confidence ? `${issue.message} (${issue.confidence} confidence)` : issue.message },
           locations: issue.file
             ? [
                 {

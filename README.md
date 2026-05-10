@@ -81,6 +81,7 @@ codex-skillforge init plugin ./hook-plugin --name hook-plugin --template hook-pa
 codex-skillforge lint ./my-skill --format text
 codex-skillforge lint ./my-skill --format json
 codex-skillforge lint ./my-skill --format sarif
+codex-skillforge lint ./my-skill --strict
 
 codex-skillforge lint .
 codex-skillforge doctor .
@@ -89,6 +90,8 @@ codex-skillforge pack ./my-plugin
 ```
 
 `lint .` can inspect a repository-style collection and recursively find skill/plugin folders under paths like `.agents/skills` and `plugins`.
+
+Default lint mode focuses on high-confidence publish-readiness problems. Use `--strict` to include advisory checks such as trigger-description quality, large skill bodies, unreferenced scripts, and plugin name/folder mismatch.
 
 ## GitHub Action
 
@@ -141,10 +144,10 @@ Skill checks:
 
 - `SKILL.md` frontmatter has `name` and `description`.
 - skill names are lowercase hyphen-case and under 64 characters.
-- descriptions are concise, trigger-oriented, and front-loaded.
-- Markdown and inline resource references resolve.
-- scripts are mentioned in `SKILL.md`.
+- explicit Markdown links and known resource references resolve.
 - optional `agents/openai.yaml` uses the current nested `interface`, `policy`, and `dependencies` shape.
+- strict mode: descriptions are concise, trigger-oriented, and front-loaded.
+- strict mode: scripts are mentioned in `SKILL.md`.
 
 Plugin checks:
 
@@ -156,6 +159,7 @@ Plugin checks:
 - bundled skills are linted too.
 - default `hooks/hooks.json` is detected and parsed.
 - hook packages warn about the required `codex_hooks` feature flag.
+- strict mode: plugin folder/name mismatch is reported.
 
 ## Install Targets
 

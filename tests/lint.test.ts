@@ -27,13 +27,23 @@ describe("lintPath", () => {
   });
 
   it("warns on vague descriptions", async () => {
-    const result = await lintPath(fixture("vague-skill"));
+    const result = await lintPath(fixture("vague-skill"), { strict: true });
     expect(result.issues.map((issue) => issue.code)).toContain("skill.description.vague");
+  });
+
+  it("keeps advisory description warnings out of default mode", async () => {
+    const result = await lintPath(fixture("vague-skill"));
+    expect(result.issues.map((issue) => issue.code)).not.toContain("skill.description.vague");
   });
 
   it("fails broken references", async () => {
     const result = await lintPath(fixture("broken-reference"));
     expect(result.issues.map((issue) => issue.code)).toContain("reference.missing");
+  });
+
+  it("does not treat placeholder words or external URLs as missing references", async () => {
+    const result = await lintPath(fixture("reference-noise"));
+    expect(result.issues.map((issue) => issue.code)).not.toContain("reference.missing");
   });
 
   it("passes a valid plugin", async () => {
@@ -50,7 +60,7 @@ describe("lintPath", () => {
   });
 
   it("fails plugin name mismatch", async () => {
-    const result = await lintPath(fixture("plugin-name-mismatch"));
+    const result = await lintPath(fixture("plugin-name-mismatch"), { strict: true });
     expect(result.issues.map((issue) => issue.code)).toContain("plugin.name.mismatch");
   });
 

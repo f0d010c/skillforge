@@ -1,6 +1,6 @@
 {
   "name": "codex-skillforge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Creator tooling for OpenAI Codex skills and plugins.",
   "type": "module",
   "bin": {

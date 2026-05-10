@@ -1,10 +1,16 @@
 export type IssueLevel = "error" | "warning";
+export type IssueConfidence = "high" | "medium" | "low";
 
 export interface Issue {
   level: IssueLevel;
   code: string;
   message: string;
   file?: string;
+  confidence?: IssueConfidence;
+}
+
+export interface LintOptions {
+  strict?: boolean;
 }
 
 export interface SkillForgeConfig {

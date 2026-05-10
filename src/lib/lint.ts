@@ -2,7 +2,7 @@ import path from "node:path";
 import fs from "fs-extra";
 import YAML from "yaml";
 import { z } from "zod";
-import type { Issue, LintResult, SkillForgeConfig } from "../types.js";
+import type { Issue, LintOptions, LintResult, SkillForgeConfig } from "../types.js";
 import { loadConfig } from "./config.js";
 import { parseMarkdownFrontmatter } from "./frontmatter.js";
 import { hyphenName } from "./paths.js";
@@ -72,21 +72,29 @@ const pluginManifestSchema = z
   .passthrough();
 
 const ignoredDirs = new Set(["node_modules", "dist", ".git", ".next", "coverage", "tmp-e2e"]);
+const advisoryCodes = new Set([
+  "plugin.name.mismatch",
+  "skill.description.vague",
+  "skill.description.trigger-late",
+  "skill.description.long",
+  "skill.body.large",
+  "script.unreferenced"
+]);
 
-export async function lintPath(targetPath: string): Promise<LintResult> {
+export async function lintPath(targetPath: string, options: LintOptions = {}): Promise<LintResult> {
   const absolute = path.resolve(targetPath);
 
   if (!(await fs.pathExists(absolute))) {
     return {
       targetPath: absolute,
       kind: "unknown",
-      issues: [{ level: "error", code: "path.missing", message: "Target path does not exist.", file: absolute }]
+      issues: [{ level: "error", confidence: "high", code: "path.missing", message: "Target path does not exist.", file: absolute }]
     };
   }
 
   const direct = await lintSingle(absolute);
   if (direct.kind !== "unknown") {
-    return direct;
+    return applyLintOptions(direct, options);
   }
 
   const children = await discoverLintTargets(absolute);
@@ -99,8 +107,17 @@ export async function lintPath(targetPath: string): Promise<LintResult> {
     targetPath: absolute,
     kind: "collection",
     checkedPaths: results.map((result) => result.targetPath),
-    issues: results.flatMap((result) => result.issues)
+    issues: filterIssues(results.flatMap((result) => result.issues), options)
   };
+}
+
+function applyLintOptions(result: LintResult, options: LintOptions): LintResult {
+  return { ...result, issues: filterIssues(result.issues, options) };
+}
+
+function filterIssues(issues: Issue[], options: LintOptions): Issue[] {
+  if (options.strict) return issues;
+  return issues.filter((issue) => !advisoryCodes.has(issue.code));
 }
 
 async function lintSingle(root: string): Promise<LintResult> {
@@ -110,7 +127,7 @@ async function lintSingle(root: string): Promise<LintResult> {
   const isSkill = await fs.pathExists(skillPath);
   const isPlugin = await fs.pathExists(pluginPath);
   const config = await loadConfig(root).catch((error): SkillForgeConfig => {
-    issues.push({ level: "error", code: "config.invalid", message: String(error), file: path.join(root, "skillforge.json") });
+    issues.push({ level: "error", confidence: "high", code: "config.invalid", message: String(error), file: path.join(root, "skillforge.json") });
     return {};
   });
 
@@ -123,6 +140,7 @@ async function lintSingle(root: string): Promise<LintResult> {
   if (!isSkill && !isPlugin) {
     issues.push({
       level: "error",
+      confidence: "high",
       code: "shape.unknown",
       message: "Expected a skill folder with SKILL.md, a plugin folder with .codex-plugin/plugin.json, or a repository containing such folders.",
       file: root
@@ -132,6 +150,7 @@ async function lintSingle(root: string): Promise<LintResult> {
   if (config.checks?.requireOpenAiYaml && !(await fs.pathExists(path.join(root, "agents", "openai.yaml")))) {
     issues.push({
       level: "error",
+      confidence: "high",
       code: "metadata.openai-yaml.missing",
       message: "skillforge.json requires agents/openai.yaml, but it was not found.",
       file: path.join(root, "agents", "openai.yaml")
@@ -141,6 +160,7 @@ async function lintSingle(root: string): Promise<LintResult> {
   if (config.checks?.allowScripts === false && (await fs.pathExists(path.join(root, "scripts")))) {
     issues.push({
       level: "error",
+      confidence: "high",
       code: "scripts.disallowed",
       message: "skillforge.json disallows scripts, but a scripts directory exists.",
       file: path.join(root, "scripts")
@@ -177,19 +197,19 @@ async function lintSkill(root: string, maxSkillMdLines: number): Promise<Issue[]
   const frontmatter = parseMarkdownFrontmatter(content);
 
   if (!frontmatter) {
-    return [{ level: "error", code: "skill.frontmatter.missing", message: "SKILL.md must start with YAML frontmatter.", file: skillPath }];
+    return [{ level: "error", confidence: "high", code: "skill.frontmatter.missing", message: "SKILL.md must start with YAML frontmatter.", file: skillPath }];
   }
 
   const parsed = skillFrontmatterSchema.safeParse(frontmatter.data);
   if (!parsed.success) {
-    issues.push({ level: "error", code: "skill.frontmatter.invalid", message: parsed.error.message, file: skillPath });
+    issues.push({ level: "error", confidence: "high", code: "skill.frontmatter.invalid", message: parsed.error.message, file: skillPath });
   } else {
     const { name, description } = parsed.data;
     if (name !== hyphenName(name) || name.length > 64) {
-      issues.push({ level: "error", code: "skill.name.invalid", message: "Skill name must be lowercase hyphen-case and <= 64 characters.", file: skillPath });
+      issues.push({ level: "error", confidence: "high", code: "skill.name.invalid", message: "Skill name must be lowercase hyphen-case and <= 64 characters.", file: skillPath });
     }
     if (name !== path.basename(root) && !root.includes(`${path.sep}plugins${path.sep}`) && !root.includes(`${path.sep}.agents${path.sep}skills${path.sep}`)) {
-      issues.push({ level: "warning", code: "skill.name.folder-mismatch", message: "Skill folder name should match frontmatter name for predictable installs.", file: skillPath });
+      issues.push({ level: "warning", confidence: "medium", code: "skill.name.folder-mismatch", message: "Skill folder name should match frontmatter name for predictable installs.", file: skillPath });
     }
     issues.push(...descriptionIssues(description, skillPath));
   }
@@ -198,6 +218,7 @@ async function lintSkill(root: string, maxSkillMdLines: number): Promise<Issue[]
   if (lineCount > maxSkillMdLines) {
     issues.push({
       level: "warning",
+      confidence: "low",
       code: "skill.body.large",
       message: `SKILL.md has ${lineCount} lines; consider moving detail into references/.`,
       file: skillPath
@@ -214,32 +235,44 @@ function descriptionIssues(description: string, file: string): Issue[] {
   const issues: Issue[] = [];
   const lower = description.toLowerCase();
   if (description.length < 80 || !/\b(use|when|triggers?|applies|for)\b/.test(lower)) {
-    issues.push({ level: "warning", code: "skill.description.vague", message: "Description should clearly say what the skill does and when Codex should use it.", file });
+    issues.push({ level: "warning", confidence: "low", code: "skill.description.vague", message: "Description should clearly say what the skill does and when Codex should use it.", file });
   }
   if (!/\b(when|use|trigger|applies|for)\b/.test(lower.slice(0, 160))) {
-    issues.push({ level: "warning", code: "skill.description.trigger-late", message: "Front-load trigger words because Codex may shorten large skill lists.", file });
+    issues.push({ level: "warning", confidence: "low", code: "skill.description.trigger-late", message: "Front-load trigger words because Codex may shorten large skill lists.", file });
   }
   if (description.length > 700) {
-    issues.push({ level: "warning", code: "skill.description.long", message: "Description is long; keep trigger metadata concise and move details to the body.", file });
+    issues.push({ level: "warning", confidence: "low", code: "skill.description.long", message: "Description is long; keep trigger metadata concise and move details to the body.", file });
   }
   return issues;
 }
 
 async function referenceIssues(root: string, content: string, file: string): Promise<Issue[]> {
   const issues: Issue[] = [];
-  const markdownLinks = Array.from(content.matchAll(/\[[^\]]+\]\(([^)\s]+)\)/g)).map((match) => match[1]);
-  const inlinePaths = Array.from(content.matchAll(/`((?:scripts|references|assets|agents)\/[A-Za-z0-9._/-]+)`/g)).map((match) => match[1]);
+  const markdownLinks = Array.from(content.matchAll(/!?\[[^\]]*]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g)).map((match) => ({ ref: match[1], confidence: "high" as const }));
+  const inlinePaths = Array.from(content.matchAll(/`((?:\.{1,2}\/)?(?:scripts|references|assets|agents)\/[A-Za-z0-9._/-]+)`/g)).map((match) => ({
+    ref: match[1],
+    confidence: "medium" as const
+  }));
 
-  for (const ref of [...markdownLinks, ...inlinePaths]) {
-    if (/^[a-z]+:\/\//i.test(ref) || ref.startsWith("#")) continue;
+  for (const { ref, confidence } of [...markdownLinks, ...inlinePaths]) {
+    if (!shouldCheckLocalReference(ref)) continue;
     const clean = ref.split("#")[0];
     if (!clean || clean.includes("<") || clean.includes(">") || clean.includes("*") || clean.includes("\\")) continue;
     const fullPath = path.resolve(path.dirname(file), clean);
     if (!isInside(root, fullPath) || !(await fs.pathExists(fullPath))) {
-      issues.push({ level: "error", code: "reference.missing", message: `Referenced file does not exist: ${ref}`, file });
+      issues.push({ level: "error", confidence, code: "reference.missing", message: `Referenced file does not exist: ${ref}`, file });
     }
   }
   return issues;
+}
+
+function shouldCheckLocalReference(ref: string): boolean {
+  if (/^[a-z][a-z0-9+.-]*:/i.test(ref) || ref.startsWith("#")) return false;
+  const clean = ref.split("#")[0].split("?")[0];
+  if (!clean || clean === "." || clean === "..") return false;
+  if (clean.startsWith("./") || clean.startsWith("../") || clean.startsWith("/")) return true;
+  if (clean.includes("/")) return true;
+  return /\.[A-Za-z0-9]{1,8}$/.test(clean);
 }
 
 async function scriptIssues(root: string, skillMd: string): Promise<Issue[]> {
@@ -251,10 +284,10 @@ async function scriptIssues(root: string, skillMd: string): Promise<Issue[]> {
     const stat = await fs.stat(fullPath);
     if (!stat.isFile()) continue;
     if (!/\.(js|mjs|cjs|ts|py|ps1|sh|bat|cmd)$/i.test(entry)) {
-      issues.push({ level: "warning", code: "script.extension.unknown", message: "Script has an uncommon extension; include clear invocation notes in SKILL.md.", file: fullPath });
+      issues.push({ level: "warning", confidence: "medium", code: "script.extension.unknown", message: "Script has an uncommon extension; include clear invocation notes in SKILL.md.", file: fullPath });
     }
     if (!skillMd.includes(`scripts/${entry}`)) {
-      issues.push({ level: "warning", code: "script.unreferenced", message: "Script is not mentioned in SKILL.md, so Codex may not know when to use it.", file: fullPath });
+      issues.push({ level: "warning", confidence: "low", code: "script.unreferenced", message: "Script is not mentioned in SKILL.md, so Codex may not know when to use it.", file: fullPath });
     }
   }
   return issues;
@@ -269,14 +302,14 @@ async function openAiYamlIssues(root: string): Promise<Issue[]> {
     const parsed = openAiYamlSchema.parse(raw);
     const issues: Issue[] = [];
     if (raw && typeof raw === "object" && ["display_name", "short_description", "default_prompt"].some((key) => key in (raw as Record<string, unknown>))) {
-      issues.push({ level: "error", code: "metadata.openai-yaml.legacy-shape", message: "agents/openai.yaml fields must live under interface:, not at the top level.", file });
+      issues.push({ level: "error", confidence: "high", code: "metadata.openai-yaml.legacy-shape", message: "agents/openai.yaml fields must live under interface:, not at the top level.", file });
     }
     for (const asset of [parsed.interface?.icon_small, parsed.interface?.icon_large].filter(Boolean) as string[]) {
       issues.push(...(await pluginPathIssues(root, file, asset, "metadata.asset")));
     }
     return issues;
   } catch (error) {
-    return [{ level: "error", code: "metadata.openai-yaml.invalid", message: String(error), file }];
+    return [{ level: "error", confidence: "high", code: "metadata.openai-yaml.invalid", message: String(error), file }];
   }
 }
 
@@ -288,21 +321,21 @@ async function lintPlugin(root: string): Promise<Issue[]> {
   try {
     manifest = pluginManifestSchema.parse(JSON.parse(await fs.readFile(manifestPath, "utf8")));
   } catch (error) {
-    return [{ level: "error", code: "plugin.manifest.invalid", message: String(error), file: manifestPath }];
+    return [{ level: "error", confidence: "high", code: "plugin.manifest.invalid", message: String(error), file: manifestPath }];
   }
 
   const folderName = path.basename(root);
   if (manifest.name !== folderName) {
-    issues.push({ level: "warning", code: "plugin.name.mismatch", message: `Manifest name "${manifest.name}" differs from folder name "${folderName}". This is valid for some repo-level packages but can confuse local plugin installs.`, file: manifestPath });
+    issues.push({ level: "warning", confidence: "low", code: "plugin.name.mismatch", message: `Manifest name "${manifest.name}" differs from folder name "${folderName}". This is valid for some repo-level packages but can confuse local plugin installs.`, file: manifestPath });
   }
   if (manifest.name !== hyphenName(manifest.name) || manifest.name.length > 64) {
-    issues.push({ level: "error", code: "plugin.name.invalid", message: "Plugin name must be lowercase hyphen-case and <= 64 characters.", file: manifestPath });
+    issues.push({ level: "error", confidence: "high", code: "plugin.name.invalid", message: "Plugin name must be lowercase hyphen-case and <= 64 characters.", file: manifestPath });
   }
   if (!manifest.version) {
-    issues.push({ level: "warning", code: "plugin.version.missing", message: "Published plugins should include a version.", file: manifestPath });
+    issues.push({ level: "warning", confidence: "medium", code: "plugin.version.missing", message: "Published plugins should include a version.", file: manifestPath });
   }
   if (!manifest.description || manifest.description.length < 20) {
-    issues.push({ level: "warning", code: "plugin.description.vague", message: "Published plugins should include a useful description.", file: manifestPath });
+    issues.push({ level: "warning", confidence: "medium", code: "plugin.description.vague", message: "Published plugins should include a useful description.", file: manifestPath });
   }
 
   issues.push(...(await pluginSkillsIssues(root, manifestPath, manifest.skills)));
@@ -336,7 +369,7 @@ async function pluginSkillsIssues(root: string, manifestPath: string, skills?: s
     const entries = await fs.readdir(full);
     const skillFolders = await Promise.all(entries.map(async (entry) => ((await fs.pathExists(path.join(full, entry, "SKILL.md"))) ? path.join(full, entry) : null)));
     if (!directSkill && !skillFolders.some(Boolean)) {
-      issues.push({ level: "error", code: "plugin.skills.empty", message: `Skills path does not contain any SKILL.md files: ${ref}`, file: manifestPath });
+      issues.push({ level: "error", confidence: "high", code: "plugin.skills.empty", message: `Skills path does not contain any SKILL.md files: ${ref}`, file: manifestPath });
     }
     if (directSkill) issues.push(...(await lintSkill(full, 500)));
     for (const skillFolder of skillFolders.filter(Boolean) as string[]) {
@@ -362,7 +395,7 @@ async function pluginHooksIssues(root: string, manifestPath: string, hooks?: z.i
 }
 
 function hooksFeatureFlagIssue(file: string): Issue {
-  return { level: "warning", code: "plugin.hooks.feature-flag", message: "Hooks require Codex hook support; document the codex_hooks feature flag for users.", file };
+  return { level: "warning", confidence: "medium", code: "plugin.hooks.feature-flag", message: "Hooks require Codex hook support; document the codex_hooks feature flag for users.", file };
 }
 
 async function optionalManifestPath(root: string, manifestPath: string, ref: string | undefined, code: string): Promise<Issue[]> {
@@ -372,13 +405,13 @@ async function optionalManifestPath(root: string, manifestPath: string, ref: str
 async function pluginPathIssues(root: string, manifestPath: string, ref: string, code: string): Promise<Issue[]> {
   const issues: Issue[] = [];
   if (!ref.startsWith("./")) {
-    issues.push({ level: "error", code: `${code}.relative`, message: `Manifest path must start with ./ and be relative to the plugin root: ${ref}`, file: manifestPath });
+    issues.push({ level: "error", confidence: "high", code: `${code}.relative`, message: `Manifest path must start with ./ and be relative to the plugin root: ${ref}`, file: manifestPath });
   }
   const full = path.resolve(root, ref);
   if (!isInside(root, full)) {
-    issues.push({ level: "error", code: `${code}.outside-root`, message: `Manifest path must stay inside the plugin root: ${ref}`, file: manifestPath });
+    issues.push({ level: "error", confidence: "high", code: `${code}.outside-root`, message: `Manifest path must stay inside the plugin root: ${ref}`, file: manifestPath });
   } else if (!(await fs.pathExists(full))) {
-    issues.push({ level: "error", code: `${code}.missing`, message: `Manifest path does not exist: ${ref}`, file: manifestPath });
+    issues.push({ level: "error", confidence: "high", code: `${code}.missing`, message: `Manifest path does not exist: ${ref}`, file: manifestPath });
   }
   return issues;
 }
@@ -389,7 +422,7 @@ async function parseJsonFile(file: string, code: string): Promise<Issue[]> {
     JSON.parse(await fs.readFile(file, "utf8"));
     return [];
   } catch (error) {
-    return [{ level: "error", code, message: String(error), file }];
+    return [{ level: "error", confidence: "high", code, message: String(error), file }];
   }
 }
 
