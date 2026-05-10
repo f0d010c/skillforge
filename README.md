@@ -35,26 +35,24 @@ SkillForge is not a marketplace. It is the publish-readiness check you run befor
 
 ## Install
 
-Until the npm package is published, install from GitHub:
-
-```bash
-git clone https://github.com/f0d010c/skillforge.git
-cd skillforge
-npm install
-npm run build
-```
-
-Then run:
-
-```bash
-node dist/cli.js lint .
-```
-
-After npm publish:
+Run with npm:
 
 ```bash
 npx codex-skillforge lint .
 ```
+
+Or install it in a project:
+
+```bash
+npm install --save-dev codex-skillforge
+npx codex-skillforge lint .
+```
+
+## Demo
+
+See a tiny working example repo:
+
+[f0d010c/codex-skillforge-demo](https://github.com/f0d010c/codex-skillforge-demo)
 
 ## Quick Start
 
