@@ -1,6 +1,6 @@
 ---
 name: Rule request
-about: Suggest a new publish-readiness check for Codex skills/plugins
+about: Suggest a new publish-readiness check for agent skills/plugins
 title: "[rule]: "
 labels: rule-request
 ---
@@ -20,4 +20,4 @@ Paste or link to a minimal example.
 
 ## Notes
 
-Any relevant Codex docs, marketplace behavior, or real-world repo examples.
+Any relevant agent docs, marketplace behavior, or real-world repo examples.

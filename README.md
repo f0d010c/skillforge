@@ -115,7 +115,7 @@ npx agent-skillforge smoke ./my-skill
 npx agent-skillforge pack ./my-skill
 ```
 
-Check an existing Codex extension repo:
+Check an existing agent extension repo:
 
 ```bash
 npx agent-skillforge lint .

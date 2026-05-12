@@ -1,6 +1,6 @@
 ---
 name: False positive
-about: Report a SkillForge rule that flags valid Codex skill/plugin content
+about: Report a SkillForge rule that flags valid agent skill/plugin content
 title: "[false positive]: "
 labels: false-positive
 ---
@@ -12,7 +12,7 @@ Link to the skill/plugin repo or paste the minimal fixture.
 ## Command
 
 ```bash
-codex-skillforge lint .
+agent-skillforge lint .
 ```
 
 ## Output

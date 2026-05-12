@@ -1,6 +1,6 @@
 # Public Repo Audit Notes
 
-SkillForge was tested against a small sample of public Codex skill/plugin repositories to validate that the rules catch useful issues without requiring project-specific setup.
+SkillForge was tested against a small sample of public Codex skill/plugin repositories to validate that the rules catch useful issues without requiring project-specific setup. The project now targets broader agent skill/plugin validation, with Codex as the first mature rule set.
 
 ## What The Audit Proved
 
@@ -19,4 +19,4 @@ SkillForge was tested against a small sample of public Codex skill/plugin reposi
 
 The strongest message is not "generic linter." It is:
 
-> Before you submit or share a Codex plugin, run SkillForge to catch publish-readiness issues.
+> Before you submit or share an agent skill/plugin, run SkillForge to catch publish-readiness issues.

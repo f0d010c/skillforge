@@ -2,6 +2,7 @@ node_modules/
 dist/
 tmp-e2e/
 docs/scan-artifacts/
+docs/pivot-notes.md
 *.tgz
 .DS_Store
 npm-debug.log*

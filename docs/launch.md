@@ -2,13 +2,13 @@
 
 ## One-Liner
 
-SkillForge is ESLint for Codex skills and plugins: scaffold, lint, smoke-test, and package Codex extensions before publishing.
+SkillForge is ESLint for agent skills and plugins: scaffold, lint, smoke-test, check compatibility, and package extensions before publishing.
 
 ## Short Post
 
-I built a small OSS CLI for people making Codex skills/plugins.
+I built a small OSS CLI for people making agent skills/plugins.
 
-Codex extensions are easy to package incorrectly: vague `SKILL.md` triggers, broken `./skills/` paths, stale `agents/openai.yaml`, missing hook files, marketplace metadata drift.
+Agent extensions are easy to package incorrectly: vague `SKILL.md` triggers, broken `./skills/` paths, stale metadata, missing hook files, marketplace metadata drift, and cross-agent assumptions.
 
 SkillForge gives authors a quick publish-readiness check:
 
@@ -16,17 +16,17 @@ SkillForge gives authors a quick publish-readiness check:
 npx agent-skillforge lint .
 ```
 
-It also scaffolds skills/plugins, smoke-tests declared example prompts, and packs release artifacts with install notes.
+It also scaffolds skills/plugins, smoke-tests declared example prompts, checks Codex/Claude/portable compatibility, and packs release artifacts with install notes.
 
 Repo: https://github.com/f0d010c/skillforge
 
-I am looking for Codex skill/plugin repos to test it against.
+I am looking for agent skill/plugin repos to test it against.
 
 ## Reddit / Hacker News Title Options
 
-- I built an ESLint-style linter for Codex skills and plugins
-- Before you publish a Codex plugin, run this linter
-- SkillForge: publish-readiness checks for Codex skills/plugins
+- I built an ESLint-style linter for agent skills and plugins
+- Before you publish an agent skill/plugin, run this linter
+- SkillForge: publish-readiness checks for agent skills/plugins
 
 ## Useful Reply To Feedback
 
@@ -34,8 +34,8 @@ Thanks. The main thing I am trying to validate is whether plugin authors want a 
 
 ## Outreach Targets
 
-- Codex plugin marketplace maintainers
+- Agent skill/plugin marketplace maintainers
 - `awesome-codex-plugins` maintainers
-- authors of public Codex skill/plugin repos
+- authors of public agent skill/plugin repos
 - r/codex
-- OpenAI developer community posts about Codex skills/plugins
+- OpenAI, Anthropic, and agent-skill community posts about skills/plugins
