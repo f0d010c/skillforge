@@ -1,6 +1,6 @@
 import path from "node:path";
 import fs from "fs-extra";
-import archiver from "archiver";
+import type archiver from "archiver";
 import { lintPath } from "../lib/lint.js";
 import { countErrors } from "../lib/reporters.js";
 
@@ -29,10 +29,13 @@ export async function packCommand(targetPath: string, options: PackOptions): Pro
 }
 
 async function zipDirectory(source: string, zipPath: string, outDir: string): Promise<void> {
+  const { ZipArchive } = (await import("archiver")) as unknown as {
+    ZipArchive: new (options?: archiver.ArchiverOptions) => archiver.Archiver;
+  };
   await fs.remove(zipPath);
   await new Promise<void>((resolve, reject) => {
     const output = fs.createWriteStream(zipPath);
-    const archive = archiver("zip", { zlib: { level: 9 } });
+    const archive = new ZipArchive({ zlib: { level: 9 } });
     output.on("close", resolve);
     archive.on("error", reject);
     archive.pipe(output);
