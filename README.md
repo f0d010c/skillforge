@@ -8,6 +8,8 @@
 
 SkillForge helps Codex extension authors scaffold, lint, smoke-test, inspect, and package skills/plugins before they publish or submit them to a marketplace.
 
+Listed in [awesome-codex-plugins](https://github.com/hashgraph-online/awesome-codex-plugins) under "Validate Before You Ship."
+
 ```bash
 npx codex-skillforge lint .
 ```
@@ -45,8 +47,8 @@ Commands that write files are explicit:
 For cautious use, pin the npm version, review the source, and start with read-only commands:
 
 ```bash
-npx codex-skillforge@0.1.1 lint .
-npx codex-skillforge@0.1.1 smoke ./path/to/skill
+npx codex-skillforge@0.1.2 lint .
+npx codex-skillforge@0.1.2 smoke ./path/to/skill
 ```
 
 ## Install
@@ -73,6 +75,22 @@ See a tiny working example repo:
 See real-world scan notes:
 
 [docs/real-world-scan.md](docs/real-world-scan.md)
+
+## Real-World Cases
+
+The `examples/real-world-cases/` folder contains tiny, intentionally flawed examples based on issues found while scanning public Codex plugin bundles:
+
+- `missing-mcp-server-file`: plugin manifest points at `./mcp.json`, but the file is absent.
+- `stale-skill-reference`: `SKILL.md` links to a reference file that no longer exists.
+- `weak-trigger-description`: skill frontmatter is valid YAML, but too vague for reliable triggering.
+
+Try them:
+
+```bash
+npx codex-skillforge lint examples/real-world-cases/missing-mcp-server-file
+npx codex-skillforge lint examples/real-world-cases/stale-skill-reference
+npx codex-skillforge lint examples/real-world-cases/weak-trigger-description --strict
+```
 
 ## Quick Start
 

@@ -3,6 +3,7 @@ import { lintPath } from "../src/lib/lint.js";
 import { formatLintResult } from "../src/lib/reporters.js";
 
 const fixture = (name: string) => `tests/fixtures/${name}`;
+const realWorldCase = (name: string) => `examples/real-world-cases/${name}`;
 
 describe("lintPath", () => {
   it("passes a valid instruction-only skill", async () => {
@@ -74,5 +75,20 @@ describe("lintPath", () => {
     expect(() => JSON.parse(formatLintResult(result, "json"))).not.toThrow();
     const sarif = JSON.parse(formatLintResult(result, "sarif"));
     expect(sarif.version).toBe("2.1.0");
+  });
+
+  it("documents a real-world missing MCP server file case", async () => {
+    const result = await lintPath(realWorldCase("missing-mcp-server-file"));
+    expect(result.issues.map((issue) => issue.code)).toContain("plugin.mcpServers.missing");
+  });
+
+  it("documents a real-world stale skill reference case", async () => {
+    const result = await lintPath(realWorldCase("stale-skill-reference"));
+    expect(result.issues.map((issue) => issue.code)).toContain("reference.missing");
+  });
+
+  it("documents a real-world weak trigger description case", async () => {
+    const result = await lintPath(realWorldCase("weak-trigger-description"), { strict: true });
+    expect(result.issues.map((issue) => issue.code)).toContain("skill.description.vague");
   });
 });

@@ -31,7 +31,7 @@ const openAiYamlSchema = z
       })
       .passthrough()
       .optional(),
-    dependencies: z.record(z.unknown()).optional()
+    dependencies: z.record(z.string(), z.unknown()).optional()
   })
   .passthrough();
 
@@ -48,7 +48,7 @@ const pluginManifestSchema = z
     skills: z.union([z.string(), z.array(z.string())]).optional(),
     mcpServers: z.string().optional(),
     apps: z.string().optional(),
-    hooks: z.union([z.string(), z.array(z.string()), z.record(z.unknown()), z.array(z.record(z.unknown()))]).optional(),
+    hooks: z.union([z.string(), z.array(z.string()), z.record(z.string(), z.unknown()), z.array(z.record(z.string(), z.unknown()))]).optional(),
     interface: z
       .object({
         displayName: z.string().optional(),

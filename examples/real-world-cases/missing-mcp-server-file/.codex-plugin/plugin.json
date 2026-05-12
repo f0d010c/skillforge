@@ -1,0 +1,12 @@
+{
+  "name": "missing-mcp-server-file",
+  "version": "0.1.0",
+  "description": "Example plugin with a manifest that references an MCP config file missing from the package.",
+  "skills": "./skills/",
+  "mcpServers": "./mcp.json",
+  "interface": {
+    "displayName": "Missing MCP Server File",
+    "shortDescription": "Shows missing manifest file detection.",
+    "category": "Developer Tools"
+  }
+}

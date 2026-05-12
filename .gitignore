@@ -1,6 +1,7 @@
 node_modules/
 dist/
 tmp-e2e/
+docs/scan-artifacts/
 *.tgz
 .DS_Store
 npm-debug.log*
