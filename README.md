@@ -47,8 +47,8 @@ Commands that write files are explicit:
 For cautious use, pin the npm version, review the source, and start with read-only commands:
 
 ```bash
-npx codex-skillforge@0.1.2 lint .
-npx codex-skillforge@0.1.2 smoke ./path/to/skill
+npx codex-skillforge@0.1.3 lint .
+npx codex-skillforge@0.1.3 smoke ./path/to/skill
 ```
 
 ## Install
@@ -63,7 +63,14 @@ Or install it in a project:
 
 ```bash
 npm install --save-dev codex-skillforge
-npx codex-skillforge lint .
+npx skillforge lint .
+```
+
+After installing, you can use the shorter aliases:
+
+```bash
+skillforge lint .
+csf lint .
 ```
 
 ## Demo
@@ -109,22 +116,30 @@ Check an existing Codex extension repo:
 npx codex-skillforge lint .
 ```
 
+If SkillForge is installed globally or in your project, the same workflow is shorter:
+
+```bash
+skillforge lint .
+skillforge smoke ./my-skill
+skillforge pack ./my-skill
+```
+
 ## Commands
 
 ```bash
-codex-skillforge init skill ./my-skill --name my-skill
-codex-skillforge init plugin ./my-plugin --name my-plugin
-codex-skillforge init plugin ./hook-plugin --name hook-plugin --template hook-package
+skillforge init skill ./my-skill --name my-skill
+skillforge init plugin ./my-plugin --name my-plugin
+skillforge init plugin ./hook-plugin --name hook-plugin --template hook-package
 
-codex-skillforge lint ./my-skill --format text
-codex-skillforge lint ./my-skill --format json
-codex-skillforge lint ./my-skill --format sarif
-codex-skillforge lint ./my-skill --strict
+skillforge lint ./my-skill --format text
+skillforge lint ./my-skill --format json
+skillforge lint ./my-skill --format sarif
+skillforge lint ./my-skill --strict
 
-codex-skillforge lint .
-codex-skillforge doctor .
-codex-skillforge smoke ./my-skill
-codex-skillforge pack ./my-plugin
+skillforge lint .
+skillforge doctor .
+skillforge smoke ./my-skill
+skillforge pack ./my-plugin
 ```
 
 `lint .` can inspect a repository-style collection and recursively find skill/plugin folders under paths like `.agents/skills` and `plugins`.
@@ -215,7 +230,7 @@ Plugins are distributed through marketplace files such as:
 $HOME/.agents/plugins/marketplace.json
 ```
 
-`codex-skillforge pack` writes:
+`skillforge pack` writes:
 
 - `<name>.zip`
 - `INSTALL.md`
