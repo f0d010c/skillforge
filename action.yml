@@ -2,6 +2,10 @@ name: "Agent SkillForge"
 description: "Lint agent skills and plugins in CI."
 author: "f0d010c"
 
+branding:
+  icon: "shield"
+  color: "blue"
+
 inputs:
   path:
     description: "Skill, plugin, or repository path to lint."

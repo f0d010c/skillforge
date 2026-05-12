@@ -78,6 +78,38 @@ asf lint .
 
 The old `codex-skillforge` binary remains available as a compatibility alias.
 
+## GitHub Action
+
+Run SkillForge in CI:
+
+```yaml
+name: SkillForge
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  lint-skills:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: f0d010c/skillforge@v0.3.0
+        with:
+          path: .
+          profile: source
+```
+
+For marketplace-ready checks, use:
+
+```yaml
+      - uses: f0d010c/skillforge@v0.3.0
+        with:
+          path: .
+          profile: marketplace
+```
+
 ## Demo
 
 See a tiny working example repo:
