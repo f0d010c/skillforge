@@ -12,7 +12,7 @@ const program = new Command();
 program
   .name("codex-skillforge")
   .description("Creator tooling for OpenAI Codex skills and plugins.")
-  .version("0.1.1")
+  .version("0.1.2")
   .exitOverride();
 
 program
