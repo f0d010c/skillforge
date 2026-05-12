@@ -58,12 +58,5 @@
     "plugins",
     "cli"
   ],
-  "license": "MIT",
-  "main": "index.js",
-  "directories": {
-    "doc": "docs",
-    "example": "examples",
-    "test": "tests"
-  },
-  "author": ""
+  "license": "MIT"
 }
