@@ -1,11 +1,13 @@
 {
-  "name": "codex-skillforge",
-  "version": "0.2.0",
-  "description": "Creator tooling for OpenAI Codex skills and plugins.",
+  "name": "agent-skillforge",
+  "version": "0.3.0",
+  "description": "Creator tooling for agent skills and plugins.",
   "type": "module",
   "bin": {
+    "agent-skillforge": "dist/cli.js",
     "codex-skillforge": "dist/cli.js",
     "skillforge": "dist/cli.js",
+    "asf": "dist/cli.js",
     "csf": "dist/cli.js"
   },
   "files": [
@@ -48,7 +50,9 @@
     "node": ">=20"
   },
   "keywords": [
+    "agent-skills",
     "codex",
+    "claude-code",
     "openai",
     "skills",
     "plugins",

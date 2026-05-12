@@ -13,7 +13,7 @@ With the v0.1.1 rule set:
 - Default mode reported 239 findings: 221 errors and 18 warnings.
 - Strict mode reported 874 findings: 221 errors and 653 warnings.
 
-Default mode now focuses on higher-confidence publish-readiness problems. Strict mode includes advisory checks such as trigger-description quality, large skill bodies, unreferenced scripts, and plugin folder/name mismatch.
+Default mode now focuses on deterministic publish-readiness problems. Strict mode includes advisory checks such as trigger-description quality, large skill bodies, unreferenced scripts, and plugin folder/name mismatch.
 
 ## Most Common Default Findings
 
@@ -40,7 +40,7 @@ The initial scan showed that some checks were too noisy for default CI usage. In
 
 - `--strict` was added for advisory checks.
 - Default mode became lower-noise.
-- Findings gained confidence metadata.
+- Later releases replaced confidence metadata with deterministic `blocking` and `advisory` impact labels.
 - `reference.missing` was tightened so placeholder words and external URLs are not treated as missing files.
 - A regression fixture was added for reference-noise cases.
 

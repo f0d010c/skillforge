@@ -1,17 +1,19 @@
-# Codex SkillForge
+# Agent SkillForge
 
 [![CI](https://github.com/f0d010c/skillforge/actions/workflows/ci.yml/badge.svg)](https://github.com/f0d010c/skillforge/actions/workflows/ci.yml)
-[![npm version](https://img.shields.io/npm/v/codex-skillforge.svg)](https://www.npmjs.com/package/codex-skillforge)
+[![npm version](https://img.shields.io/npm/v/agent-skillforge.svg)](https://www.npmjs.com/package/agent-skillforge)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**ESLint for Codex skills and plugins.**
+**ESLint for agent skills and plugins.**
 
-SkillForge helps Codex extension authors scaffold, lint, smoke-test, inspect, and package skills/plugins before they publish or submit them to a marketplace.
+SkillForge helps agent extension authors scaffold, lint, smoke-test, inspect, and package skills/plugins before they publish or submit them to a marketplace.
+
+Codex is the first-class target today. Portable skill compatibility for Claude-style skills and cross-agent packages is now starting with `skillforge compat`.
 
 Listed in [awesome-codex-plugins](https://github.com/hashgraph-online/awesome-codex-plugins) under "Validate Before You Ship."
 
 ```bash
-npx codex-skillforge lint .
+npx agent-skillforge lint .
 ```
 
 Example output:
@@ -25,19 +27,20 @@ SkillForge plugin lint found 3 issue(s) (2 blocking, 1 advisory) [source]:
 
 ## Why This Exists
 
-Codex skills and plugins are small, powerful folders. They are also easy to get subtly wrong:
+Agent skills and plugins are small, powerful folders. They are also easy to get subtly wrong:
 
 - weak skill descriptions that Codex will not trigger well
 - stale `agents/openai.yaml` shapes
 - plugin paths that are not `./`-relative
 - missing bundled skills, hooks, MCP, app, or asset files
-- plugins that work locally but are not marketplace-ready
+- packages that work locally but are not marketplace-ready
+- skills that claim cross-agent compatibility but still contain agent-specific assumptions
 
-SkillForge is not a marketplace. It is the publish-readiness check you run before sharing a Codex skill/plugin repo.
+SkillForge is not a marketplace. It is the publish-readiness check you run before sharing an agent skill/plugin repo.
 
 ## Security Model
 
-SkillForge is a CLI linter, not a Codex runtime plugin. Running `lint`, `doctor`, and `smoke` reads local files and reports issues; it does not install skills, load plugins into Codex, or execute scripts from the target project.
+SkillForge is a CLI linter, not an agent runtime plugin. Running `lint`, `compat`, `doctor`, and `smoke` reads local files and reports issues; it does not install skills, load plugins into Codex, or execute scripts from the target project.
 
 Commands that write files are explicit:
 
@@ -47,8 +50,8 @@ Commands that write files are explicit:
 For cautious use, pin the npm version, review the source, and start with read-only commands:
 
 ```bash
-npx codex-skillforge@0.2.0 lint .
-npx codex-skillforge@0.2.0 smoke ./path/to/skill
+npx agent-skillforge@0.3.0 lint .
+npx agent-skillforge@0.3.0 compat . --target portable
 ```
 
 ## Install
@@ -56,13 +59,13 @@ npx codex-skillforge@0.2.0 smoke ./path/to/skill
 Run with npm:
 
 ```bash
-npx codex-skillforge lint .
+npx agent-skillforge lint .
 ```
 
 Or install it in a project:
 
 ```bash
-npm install --save-dev codex-skillforge
+npm install --save-dev agent-skillforge
 npx skillforge lint .
 ```
 
@@ -70,8 +73,10 @@ After installing, you can use the shorter aliases:
 
 ```bash
 skillforge lint .
-csf lint .
+asf lint .
 ```
+
+The old `codex-skillforge` binary remains available as a compatibility alias.
 
 ## Demo
 
@@ -94,9 +99,9 @@ The `examples/real-world-cases/` folder contains tiny, intentionally flawed exam
 Try them:
 
 ```bash
-npx codex-skillforge lint examples/real-world-cases/missing-mcp-server-file
-npx codex-skillforge lint examples/real-world-cases/stale-skill-reference
-npx codex-skillforge lint examples/real-world-cases/weak-trigger-description --strict
+npx agent-skillforge lint examples/real-world-cases/missing-mcp-server-file
+npx agent-skillforge lint examples/real-world-cases/stale-skill-reference
+npx agent-skillforge lint examples/real-world-cases/weak-trigger-description --strict
 ```
 
 ## Quick Start
@@ -104,22 +109,23 @@ npx codex-skillforge lint examples/real-world-cases/weak-trigger-description --s
 Create and check a new skill:
 
 ```bash
-npx codex-skillforge init skill ./my-skill --name my-skill
-npx codex-skillforge lint ./my-skill
-npx codex-skillforge smoke ./my-skill
-npx codex-skillforge pack ./my-skill
+npx agent-skillforge init skill ./my-skill --name my-skill
+npx agent-skillforge lint ./my-skill
+npx agent-skillforge smoke ./my-skill
+npx agent-skillforge pack ./my-skill
 ```
 
 Check an existing Codex extension repo:
 
 ```bash
-npx codex-skillforge lint .
+npx agent-skillforge lint .
 ```
 
 If SkillForge is installed globally or in your project, the same workflow is shorter:
 
 ```bash
 skillforge lint .
+skillforge compat . --target portable
 skillforge smoke ./my-skill
 skillforge pack ./my-skill
 ```
@@ -138,6 +144,7 @@ skillforge lint ./my-plugin --profile marketplace
 skillforge lint ./my-skill --strict
 
 skillforge lint .
+skillforge compat . --target portable
 skillforge doctor .
 skillforge smoke ./my-skill
 skillforge pack ./my-plugin
@@ -146,6 +153,24 @@ skillforge pack ./my-plugin
 `lint .` can inspect a repository-style collection and recursively find skill/plugin folders under paths like `.agents/skills` and `plugins`.
 
 Default lint mode focuses on deterministic publish-readiness problems. Use `--strict` to include advisory checks such as trigger-description quality, large skill bodies, unreferenced scripts, and plugin name/folder mismatch.
+
+## Compatibility
+
+Use `compat` to check whether a skill/package is likely to work in a specific agent ecosystem.
+
+```bash
+skillforge compat . --target codex
+skillforge compat . --target claude
+skillforge compat . --target portable
+```
+
+`codex` runs Codex-oriented lint checks.
+
+`claude` checks the shared `SKILL.md` basics expected by Claude-style skills.
+
+`portable` combines both and adds warnings for agent-specific wording, `.claude/`, `.codex/`, `.agents/`, and obvious OS-specific script assumptions.
+
+This is an analysis command, not an auto-converter.
 
 ## Profiles
 
@@ -178,7 +203,7 @@ on:
     branches: [main]
 
 jobs:
-  lint-codex-extensions:
+  lint-agent-extensions:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -281,7 +306,7 @@ Verify from a clean directory after npm publish:
 ```bash
 mkdir skillforge-smoke
 cd skillforge-smoke
-npx codex-skillforge --version
-npx codex-skillforge init skill ./demo-skill --name demo-skill
-npx codex-skillforge lint ./demo-skill
+npx agent-skillforge --version
+npx agent-skillforge init skill ./demo-skill --name demo-skill
+npx agent-skillforge lint ./demo-skill
 ```

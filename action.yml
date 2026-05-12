@@ -1,5 +1,5 @@
-name: "Codex SkillForge"
-description: "Lint Codex skills and plugins in CI."
+name: "Agent SkillForge"
+description: "Lint agent skills and plugins in CI."
 author: "f0d010c"
 
 inputs:

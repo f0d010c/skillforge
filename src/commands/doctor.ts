@@ -6,7 +6,7 @@ export async function doctorCommand(targetPath = "."): Promise<{ output: string;
   const cwd = path.resolve(targetPath);
   const codexHome = process.env.CODEX_HOME ? path.resolve(process.env.CODEX_HOME) : path.join(os.homedir(), ".codex");
   const agentsHome = path.join(os.homedir(), ".agents");
-  const lines = ["Codex SkillForge doctor", ""];
+  const lines = ["SkillForge doctor", ""];
   let warnings = 0;
 
   await addPath(lines, "Target", cwd);

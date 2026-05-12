@@ -13,7 +13,7 @@ Codex extensions are easy to package incorrectly: vague `SKILL.md` triggers, bro
 SkillForge gives authors a quick publish-readiness check:
 
 ```bash
-npx codex-skillforge lint .
+npx agent-skillforge lint .
 ```
 
 It also scaffolds skills/plugins, smoke-tests declared example prompts, and packs release artifacts with install notes.

@@ -11,7 +11,7 @@ This runs the Codex skill/plugin files through SkillForge and fixes a few publis
 ## Validation
 
 ```bash
-npx codex-skillforge lint .
+npx agent-skillforge lint .
 ```
 
 ## Notes

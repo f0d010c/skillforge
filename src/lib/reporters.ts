@@ -47,7 +47,7 @@ function toSarif(result: LintResult): unknown {
       {
         tool: {
           driver: {
-            name: "codex-skillforge",
+            name: "agent-skillforge",
             informationUri: "https://github.com/f0d010c/skillforge",
             rules: uniqueRules(result.issues)
           }

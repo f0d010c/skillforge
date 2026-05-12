@@ -5,15 +5,16 @@ import { lintCommand } from "./commands/lint.js";
 import { doctorCommand } from "./commands/doctor.js";
 import { packCommand } from "./commands/pack.js";
 import { smokeCommand } from "./commands/smoke.js";
+import { compatCommand, type CompatFormat, type CompatTarget } from "./commands/compat.js";
 import type { ReportFormat } from "./lib/reporters.js";
 import type { LintProfile } from "./types.js";
 
 const program = new Command();
 
 program
-  .name("codex-skillforge")
-  .description("Creator tooling for OpenAI Codex skills and plugins.")
-  .version("0.2.0")
+  .name("agent-skillforge")
+  .description("Creator tooling for agent skills and plugins.")
+  .version("0.3.0")
   .exitOverride();
 
 program
@@ -66,6 +67,17 @@ program
     process.exitCode = result.exitCode;
   });
 
+program
+  .command("compat")
+  .argument("[path]", "skill or plugin path", ".")
+  .option("--target <target>", "codex, claude, or portable", parseCompatTarget, "portable")
+  .option("-f, --format <format>", "text or json", parseCompatFormat, "text")
+  .action(async (targetPath: string, options: { target: CompatTarget; format: CompatFormat }) => {
+    const result = await compatCommand(targetPath, options.target, options.format);
+    console.log(result.output);
+    process.exitCode = result.exitCode;
+  });
+
 try {
   await program.parseAsync(process.argv);
 } catch (error) {
@@ -99,4 +111,18 @@ function parseProfile(value: string): LintProfile {
     return value;
   }
   throw new InvalidArgumentError("profile must be 'source' or 'marketplace'");
+}
+
+function parseCompatTarget(value: string): CompatTarget {
+  if (value === "codex" || value === "claude" || value === "portable") {
+    return value;
+  }
+  throw new InvalidArgumentError("target must be 'codex', 'claude', or 'portable'");
+}
+
+function parseCompatFormat(value: string): CompatFormat {
+  if (value === "text" || value === "json") {
+    return value;
+  }
+  throw new InvalidArgumentError("format must be 'text' or 'json'");
 }

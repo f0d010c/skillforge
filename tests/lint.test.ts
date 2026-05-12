@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { compatCommand } from "../src/commands/compat.js";
 import { lintPath } from "../src/lib/lint.js";
 import { formatLintResult } from "../src/lib/reporters.js";
 
@@ -118,5 +119,20 @@ describe("lintPath", () => {
   it("documents a real-world weak trigger description case", async () => {
     const result = await lintPath(realWorldCase("weak-trigger-description"), { strict: true });
     expect(result.issues.map((issue) => issue.code)).toContain("skill.description.vague");
+  });
+
+  it("checks portable compatibility wording", async () => {
+    const result = await compatCommand(fixture("portable-wording-skill"), "portable", "json");
+    const parsed = JSON.parse(result.output);
+    expect(parsed.issues.map((issue: { code: string }) => issue.code)).toContain("portable.wording.claude");
+    expect(parsed.issues.map((issue: { code: string }) => issue.code)).toContain("portable.wording.codex");
+    expect(parsed.issues.map((issue: { code: string }) => issue.code)).toContain("portable.path.claude");
+    expect(parsed.issues.map((issue: { code: string }) => issue.code)).toContain("portable.path.codex");
+  });
+
+  it("checks portable script coverage", async () => {
+    const result = await compatCommand(fixture("unix-only-skill"), "portable", "json");
+    const parsed = JSON.parse(result.output);
+    expect(parsed.issues.map((issue: { code: string }) => issue.code)).toContain("portable.scripts.unix-only");
   });
 });
