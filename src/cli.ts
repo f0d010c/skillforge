@@ -6,13 +6,14 @@ import { doctorCommand } from "./commands/doctor.js";
 import { packCommand } from "./commands/pack.js";
 import { smokeCommand } from "./commands/smoke.js";
 import type { ReportFormat } from "./lib/reporters.js";
+import type { LintProfile } from "./types.js";
 
 const program = new Command();
 
 program
   .name("codex-skillforge")
   .description("Creator tooling for OpenAI Codex skills and plugins.")
-  .version("0.1.3")
+  .version("0.2.0")
   .exitOverride();
 
 program
@@ -30,9 +31,10 @@ program
   .command("lint")
   .argument("[path]", "skill or plugin path", ".")
   .option("-f, --format <format>", "text, json, or sarif", parseFormat, "text")
+  .option("--profile <profile>", "source or marketplace", parseProfile, "source")
   .option("--strict", "include advisory checks such as description quality, large skill bodies, unreferenced scripts, and plugin name/folder mismatch")
-  .action(async (targetPath: string, options: { format: ReportFormat; strict?: boolean }) => {
-    const result = await lintCommand(targetPath, options.format, { strict: options.strict });
+  .action(async (targetPath: string, options: { format: ReportFormat; strict?: boolean; profile: LintProfile }) => {
+    const result = await lintCommand(targetPath, options.format, { strict: options.strict, profile: options.profile });
     console.log(result.output);
     process.exitCode = result.exitCode;
   });
@@ -90,4 +92,11 @@ function parseFormat(value: string): ReportFormat {
     return value;
   }
   throw new InvalidArgumentError("format must be 'text', 'json', or 'sarif'");
+}
+
+function parseProfile(value: string): LintProfile {
+  if (value === "source" || value === "marketplace") {
+    return value;
+  }
+  throw new InvalidArgumentError("profile must be 'source' or 'marketplace'");
 }

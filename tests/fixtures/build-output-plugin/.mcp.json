@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "build-output-plugin": {
+      "command": "./dist/server.js",
+      "args": []
+    }
+  }
+}

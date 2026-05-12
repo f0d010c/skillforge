@@ -77,6 +77,34 @@ describe("lintPath", () => {
     expect(sarif.version).toBe("2.1.0");
   });
 
+  it("marks build-generated MCP commands as advisory in source profile", async () => {
+    const result = await lintPath(fixture("build-output-plugin"), { profile: "source" });
+    const issue = result.issues.find((item) => item.code === "plugin.mcpServers.command.build-missing");
+    expect(issue?.level).toBe("warning");
+    expect(issue?.impact).toBe("advisory");
+    expect(result.issues.filter((item) => item.level === "error")).toEqual([]);
+  });
+
+  it("marks missing build-generated MCP commands as blocking in marketplace profile", async () => {
+    const result = await lintPath(fixture("build-output-plugin"), { profile: "marketplace" });
+    const issue = result.issues.find((item) => item.code === "plugin.mcpServers.command.missing");
+    expect(issue?.level).toBe("error");
+    expect(issue?.impact).toBe("blocking");
+  });
+
+  it("validates MCP server command and args shape", async () => {
+    const result = await lintPath(fixture("invalid-mcp-plugin"));
+    expect(result.issues.map((issue) => issue.code)).toContain("plugin.mcpServers.command-missing");
+    expect(result.issues.map((issue) => issue.code)).toContain("plugin.mcpServers.args-shape");
+  });
+
+  it("prints impact labels instead of confidence labels", async () => {
+    const result = await lintPath(fixture("build-output-plugin"), { profile: "source" });
+    const output = formatLintResult(result, "text");
+    expect(output).toContain("[WARNING advisory]");
+    expect(output).not.toContain("confidence");
+  });
+
   it("documents a real-world missing MCP server file case", async () => {
     const result = await lintPath(realWorldCase("missing-mcp-server-file"));
     expect(result.issues.map((issue) => issue.code)).toContain("plugin.mcpServers.missing");

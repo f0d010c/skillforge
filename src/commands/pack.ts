@@ -12,7 +12,7 @@ interface PackOptions {
 export async function packCommand(targetPath: string, options: PackOptions): Promise<string> {
   const source = path.resolve(targetPath);
   if (!options.skipLint) {
-    const result = await lintPath(source);
+    const result = await lintPath(source, { profile: "marketplace" });
     if (countErrors(result.issues) > 0) {
       throw new Error("Refusing to pack while lint errors exist. Re-run with --skip-lint to override.");
     }

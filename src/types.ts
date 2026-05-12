@@ -1,16 +1,18 @@
 export type IssueLevel = "error" | "warning";
-export type IssueConfidence = "high" | "medium" | "low";
+export type IssueImpact = "blocking" | "advisory";
+export type LintProfile = "source" | "marketplace";
 
 export interface Issue {
   level: IssueLevel;
   code: string;
   message: string;
   file?: string;
-  confidence?: IssueConfidence;
+  impact?: IssueImpact;
 }
 
 export interface LintOptions {
   strict?: boolean;
+  profile?: LintProfile;
 }
 
 export interface SkillForgeConfig {
@@ -31,5 +33,6 @@ export interface LintResult {
   targetPath: string;
   kind: "skill" | "plugin" | "collection" | "unknown";
   issues: Issue[];
+  profile?: LintProfile;
   checkedPaths?: string[];
 }

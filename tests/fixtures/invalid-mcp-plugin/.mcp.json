@@ -1,0 +1,7 @@
+{
+  "mcpServers": {
+    "invalid-mcp-plugin": {
+      "args": "not-an-array"
+    }
+  }
+}

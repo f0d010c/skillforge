@@ -17,10 +17,10 @@ npx codex-skillforge lint .
 Example output:
 
 ```text
-SkillForge plugin lint found 3 issue(s):
-[ERROR] plugin.skills.missing - Manifest path does not exist: ./skills/
-[WARNING] skill.description.vague - Description should clearly say what the skill does and when Codex should use it.
-[ERROR] metadata.openai-yaml.legacy-shape - agents/openai.yaml fields must live under interface:
+SkillForge plugin lint found 3 issue(s) (2 blocking, 1 advisory) [source]:
+[ERROR blocking] plugin.skills.missing - Manifest path does not exist: ./skills/
+[WARNING advisory] skill.description.vague - Description should clearly say what the skill does and when Codex should use it.
+[ERROR blocking] metadata.openai-yaml.legacy-shape - agents/openai.yaml fields must live under interface:
 ```
 
 ## Why This Exists
@@ -47,8 +47,8 @@ Commands that write files are explicit:
 For cautious use, pin the npm version, review the source, and start with read-only commands:
 
 ```bash
-npx codex-skillforge@0.1.3 lint .
-npx codex-skillforge@0.1.3 smoke ./path/to/skill
+npx codex-skillforge@0.2.0 lint .
+npx codex-skillforge@0.2.0 smoke ./path/to/skill
 ```
 
 ## Install
@@ -134,6 +134,7 @@ skillforge init plugin ./hook-plugin --name hook-plugin --template hook-package
 skillforge lint ./my-skill --format text
 skillforge lint ./my-skill --format json
 skillforge lint ./my-skill --format sarif
+skillforge lint ./my-plugin --profile marketplace
 skillforge lint ./my-skill --strict
 
 skillforge lint .
@@ -144,7 +145,25 @@ skillforge pack ./my-plugin
 
 `lint .` can inspect a repository-style collection and recursively find skill/plugin folders under paths like `.agents/skills` and `plugins`.
 
-Default lint mode focuses on high-confidence publish-readiness problems. Use `--strict` to include advisory checks such as trigger-description quality, large skill bodies, unreferenced scripts, and plugin name/folder mismatch.
+Default lint mode focuses on deterministic publish-readiness problems. Use `--strict` to include advisory checks such as trigger-description quality, large skill bodies, unreferenced scripts, and plugin name/folder mismatch.
+
+## Profiles
+
+Use profiles to match where the plugin is being checked:
+
+```bash
+skillforge lint . --profile source
+skillforge lint . --profile marketplace
+```
+
+`source` is the default. It is friendlier for repository work and treats obvious build-generated paths such as `./dist/server.js` as advisories when a `package.json` build script exists.
+
+`marketplace` is stricter. It treats every manifest path as something that must already be bundled, which is what users and install tooling need after publishing.
+
+Issue output uses deterministic impact labels:
+
+- `blocking`: likely to break install, discovery, packaging, or runtime setup.
+- `advisory`: worth fixing, but not necessarily a publish blocker.
 
 ## GitHub Action
 
@@ -167,6 +186,7 @@ jobs:
         with:
           path: .
           format: sarif
+          profile: marketplace
 ```
 
 ## Config
@@ -209,6 +229,9 @@ Plugin checks:
 - published metadata has useful `version` and `description`.
 - `skills`, `mcpServers`, `apps`, `hooks`, and visual asset paths resolve.
 - manifest file paths are `./`-relative and stay inside the plugin root.
+- MCP server config parses and each server defines a `url` or `command`.
+- MCP server `args` are arrays of strings.
+- source profile downgrades missing build-generated command paths when a build script exists.
 - bundled skills are linted too.
 - default `hooks/hooks.json` is detected and parsed.
 - hook packages warn about the required `codex_hooks` feature flag.

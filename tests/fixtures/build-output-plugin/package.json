@@ -1,0 +1,6 @@
+{
+  "name": "build-output-plugin",
+  "scripts": {
+    "build": "tsc"
+  }
+}

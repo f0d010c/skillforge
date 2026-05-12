@@ -11,6 +11,10 @@ inputs:
     description: "Output format: text, json, or sarif."
     required: false
     default: "text"
+  profile:
+    description: "Lint profile: source or marketplace."
+    required: false
+    default: "source"
 
 runs:
   using: "composite"
@@ -29,4 +33,4 @@ runs:
       working-directory: ${{ github.action_path }}
     - name: Run SkillForge
       shell: bash
-      run: node "${{ github.action_path }}/dist/cli.js" lint "${{ inputs.path }}" --format "${{ inputs.format }}"
+      run: node "${{ github.action_path }}/dist/cli.js" lint "${{ inputs.path }}" --format "${{ inputs.format }}" --profile "${{ inputs.profile }}"
