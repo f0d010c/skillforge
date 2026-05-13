@@ -1,0 +1,10 @@
+{
+  "name": "stark",
+  "version": "1.0.0",
+  "description": "A plugin fixture with category drift against local marketplace metadata.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Stark",
+    "category": "Developer Tools"
+  }
+}

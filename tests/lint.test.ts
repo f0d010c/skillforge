@@ -112,6 +112,33 @@ describe("lintPath", () => {
     expect(result.issues.map((issue) => issue.code)).toContain("plugin.mcpServers.args-shape");
   });
 
+  it("flags plugin-level resources referenced by skills but omitted from marketplace includes", async () => {
+    const result = await lintPath(fixture("plugin-missing-include"), { profile: "marketplace" });
+    const issue = result.issues.find((item) => item.code === "plugin.include.resource-missing");
+    expect(issue?.level).toBe("error");
+    expect(issue?.impact).toBe("blocking");
+  });
+
+  it("validates manifest include paths", async () => {
+    const result = await lintPath(fixture("plugin-missing-include"), { profile: "marketplace" });
+    expect(result.issues.map((issue) => issue.code)).not.toContain("reference.missing");
+  });
+
+  it("flags README local paths that are not present in marketplace bundles", async () => {
+    const result = await lintPath(fixture("plugin-readme-stale-path"), { profile: "marketplace" });
+    const issue = result.issues.find((item) => item.code === "readme.local-path.missing");
+    expect(issue?.level).toBe("warning");
+    expect(issue?.impact).toBe("advisory");
+    expect(issue?.message).toContain("evals/");
+  });
+
+  it("flags plugin category drift against local marketplace metadata", async () => {
+    const result = await lintPath(fixture("marketplace-category/plugins/acme/stark"), { profile: "marketplace" });
+    const issue = result.issues.find((item) => item.code === "plugin.category.mismatch");
+    expect(issue?.level).toBe("error");
+    expect(issue?.message).toContain("Development & Workflow");
+  });
+
   it("prints impact labels instead of confidence labels", async () => {
     const result = await lintPath(fixture("build-output-plugin"), { profile: "source" });
     const output = formatLintResult(result, "text");

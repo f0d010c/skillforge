@@ -70,6 +70,13 @@ Add checks for:
 - hook package shape beyond path existence
 - screenshot path and extension sanity
 
+Shipped in v0.3.2:
+
+- manifest `include` path validation
+- bundled skill references checked against manifest install coverage
+- README bundle-tree drift checks
+- marketplace category drift checks against local marketplace metadata
+
 ### Markdown Reports
 
 Add a paste-ready report command for maintainers:

@@ -1,0 +1,10 @@
+{
+  "name": "plugin-missing-include",
+  "version": "1.0.0",
+  "description": "A plugin fixture whose skill references plugin-level resources without packaging them.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Plugin Missing Include",
+    "category": "Development & Workflow"
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "name": "plugin-missing-include",
+  "version": "1.0.0",
+  "description": "A plugin whose bundled skill references plugin-level resources that are not declared in manifest include.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Plugin Missing Include",
+    "category": "Development & Workflow"
+  }
+}

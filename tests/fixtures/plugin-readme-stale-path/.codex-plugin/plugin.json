@@ -1,0 +1,10 @@
+{
+  "name": "plugin-readme-stale-path",
+  "version": "1.0.0",
+  "description": "A plugin fixture whose README lists folders that are not bundled.",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Plugin README Stale Path",
+    "category": "Development & Workflow"
+  }
+}

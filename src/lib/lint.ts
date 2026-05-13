@@ -47,6 +47,7 @@ const pluginManifestSchema = z
     license: z.string().optional(),
     keywords: z.array(z.string()).optional(),
     skills: z.union([z.string(), z.array(z.string())]).optional(),
+    include: z.union([z.string(), z.array(z.string())]).optional(),
     mcpServers: z.string().optional(),
     apps: z.string().optional(),
     hooks: z.union([z.string(), z.array(z.string()), z.record(z.string(), z.unknown()), z.array(z.record(z.string(), z.unknown()))]).optional(),
@@ -213,7 +214,7 @@ async function discoverLintTargets(root: string, ignorePatterns: string[] = []):
   return Array.from(found).sort();
 }
 
-async function lintSkill(root: string, maxSkillMdLines: number, options: LintOptions): Promise<Issue[]> {
+async function lintSkill(root: string, maxSkillMdLines: number, options: LintOptions, referenceRoot = root): Promise<Issue[]> {
   const issues: Issue[] = [];
   const skillPath = path.join(root, "SKILL.md");
   const content = await fs.readFile(skillPath, "utf8");
@@ -248,7 +249,7 @@ async function lintSkill(root: string, maxSkillMdLines: number, options: LintOpt
     });
   }
 
-  issues.push(...(await referenceIssues(root, content, skillPath)));
+  issues.push(...(await referenceIssues(referenceRoot, content, skillPath)));
   issues.push(...(await scriptIssues(root, content)));
   issues.push(...(await openAiYamlIssues(root, options)));
   return issues;
@@ -362,6 +363,10 @@ async function lintPlugin(root: string, options: LintOptions): Promise<Issue[]> 
   }
 
   issues.push(...(await pluginSkillsIssues(root, manifestPath, manifest.skills, options)));
+  issues.push(...(await pluginIncludeIssues(root, manifestPath, manifest.include, options)));
+  issues.push(...(await pluginBundledResourceIssues(root, manifestPath, manifest, options)));
+  issues.push(...(await marketplaceMetadataIssues(root, manifestPath, manifest, options)));
+  issues.push(...(await readmeIssues(root, options)));
   issues.push(...(await mcpServersIssues(root, manifestPath, manifest.mcpServers, options)));
   issues.push(...(await optionalManifestPath(root, manifestPath, manifest.apps, "plugin.apps", options)));
   issues.push(...(await pluginHooksIssues(root, manifestPath, manifest.hooks, options)));
@@ -394,12 +399,203 @@ async function pluginSkillsIssues(root: string, manifestPath: string, skills: st
     if (!directSkill && !skillFolders.some(Boolean)) {
       issues.push({ level: "error", impact: "blocking", code: "plugin.skills.empty", message: `Skills path does not contain any SKILL.md files: ${ref}`, file: manifestPath });
     }
-    if (directSkill) issues.push(...(await lintSkill(full, 500, options)));
+    if (directSkill) issues.push(...(await lintSkill(full, 500, options, root)));
     for (const skillFolder of skillFolders.filter(Boolean) as string[]) {
-      issues.push(...(await lintSkill(skillFolder, 500, options)));
+      issues.push(...(await lintSkill(skillFolder, 500, options, root)));
     }
   }
   return issues;
+}
+
+async function pluginIncludeIssues(root: string, manifestPath: string, include: string | string[] | undefined, options: LintOptions): Promise<Issue[]> {
+  if (!include) return [];
+  const issues: Issue[] = [];
+  for (const ref of Array.isArray(include) ? include : [include]) {
+    issues.push(...(await pluginPathIssues(root, manifestPath, ref, "plugin.include", options)));
+  }
+  return issues;
+}
+
+async function pluginBundledResourceIssues(
+  root: string,
+  manifestPath: string,
+  manifest: z.infer<typeof pluginManifestSchema>,
+  options: LintOptions
+): Promise<Issue[]> {
+  if (options.profile !== "marketplace" && !options.strict) return [];
+  const skillRefs = Array.isArray(manifest.skills) ? manifest.skills : manifest.skills ? [manifest.skills] : [];
+  const referenced = new Set<string>();
+
+  for (const skillRef of skillRefs) {
+    const skillRoot = path.resolve(root, skillRef);
+    if (!(await fs.pathExists(skillRoot))) continue;
+    const skillFiles = await skillFilesUnder(skillRoot);
+    for (const file of skillFiles) {
+      const content = await fs.readFile(file, "utf8");
+      for (const ref of extractResourceReferences(content)) {
+        const absolute = path.resolve(path.dirname(file), ref);
+        if (!isInside(root, absolute) || !(await fs.pathExists(absolute))) continue;
+        const relative = toManifestPath(path.relative(root, absolute));
+        if (!relative.startsWith("./skills/")) {
+          referenced.add(relative);
+        }
+      }
+    }
+  }
+
+  const covered = manifestPathRefs(manifest);
+  const issues: Issue[] = [];
+  for (const ref of Array.from(referenced).sort()) {
+    if (!isCoveredByManifest(ref, covered)) {
+      issues.push({
+        level: options.profile === "marketplace" ? "error" : "warning",
+        impact: options.profile === "marketplace" ? "blocking" : "advisory",
+        code: "plugin.include.resource-missing",
+        message: `Bundled skills reference ${ref}, but the plugin manifest does not include it for install packaging.`,
+        file: manifestPath
+      });
+    }
+  }
+  return issues;
+}
+
+async function skillFilesUnder(root: string): Promise<string[]> {
+  const direct = path.join(root, "SKILL.md");
+  if (await fs.pathExists(direct)) return [direct];
+  const files: string[] = [];
+  for (const entry of await fs.readdir(root)) {
+    const candidate = path.join(root, entry, "SKILL.md");
+    if (await fs.pathExists(candidate)) files.push(candidate);
+  }
+  return files;
+}
+
+function extractResourceReferences(content: string): string[] {
+  const refs = new Set<string>();
+  const markdownLinks = content.matchAll(/!?\[[^\]]*]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g);
+  for (const match of markdownLinks) refs.add(match[1]);
+  const inlinePaths = content.matchAll(/`((?:\.{1,2}\/)+(?:scripts|references|assets|agents|commands)\/[A-Za-z0-9._/-]+)`/g);
+  for (const match of inlinePaths) refs.add(match[1]);
+  return Array.from(refs)
+    .map((ref) => ref.split("#")[0].split("?")[0])
+    .filter((ref) => ref && !/^[a-z][a-z0-9+.-]*:/i.test(ref));
+}
+
+function manifestPathRefs(manifest: z.infer<typeof pluginManifestSchema>): string[] {
+  const refs = [
+    ...(Array.isArray(manifest.include) ? manifest.include : manifest.include ? [manifest.include] : []),
+    ...(Array.isArray(manifest.skills) ? manifest.skills : manifest.skills ? [manifest.skills] : []),
+    manifest.mcpServers,
+    manifest.apps,
+    ...(typeof manifest.hooks === "string" ? [manifest.hooks] : Array.isArray(manifest.hooks) && manifest.hooks.every((hook) => typeof hook === "string") ? (manifest.hooks as string[]) : []),
+    manifest.interface?.composerIcon,
+    manifest.interface?.logo,
+    ...(manifest.interface?.screenshots ?? [])
+  ].filter(Boolean) as string[];
+  return refs.map(normalizeManifestRef);
+}
+
+function isCoveredByManifest(ref: string, manifestRefs: string[]): boolean {
+  const normalized = normalizeManifestRef(ref);
+  return manifestRefs.some((entry) => entry.endsWith("/") ? normalized.startsWith(entry) : normalized === entry);
+}
+
+async function marketplaceMetadataIssues(
+  root: string,
+  manifestPath: string,
+  manifest: z.infer<typeof pluginManifestSchema>,
+  options: LintOptions
+): Promise<Issue[]> {
+  if (options.profile !== "marketplace") return [];
+  const manifestCategory = manifest.interface?.category;
+  if (!manifestCategory) return [];
+
+  const categories = await marketplaceCategories(root, manifest);
+  return Array.from(categories)
+    .filter((category) => category !== manifestCategory)
+    .map((category): Issue => ({
+      level: "error",
+      impact: "blocking",
+      code: "plugin.category.mismatch",
+      message: `Manifest category "${manifestCategory}" differs from marketplace metadata category "${category}".`,
+      file: manifestPath
+    }));
+}
+
+async function marketplaceCategories(root: string, manifest: z.infer<typeof pluginManifestSchema>): Promise<Set<string>> {
+  const categories = new Set<string>();
+  for (const repoRoot of await ancestorDirs(root)) {
+    const marketplacePath = path.join(repoRoot, ".agents", "plugins", "marketplace.json");
+    if (await fs.pathExists(marketplacePath)) {
+      const raw = await readJsonSafe(marketplacePath);
+      const plugins = Array.isArray((raw as { plugins?: unknown })?.plugins) ? ((raw as { plugins: unknown[] }).plugins) : [];
+      for (const item of plugins) {
+        const record = item as Record<string, unknown>;
+        const source = record.source as Record<string, unknown> | undefined;
+        const sourcePath = typeof source?.path === "string" ? source.path : undefined;
+        if (sourcePath && samePath(path.resolve(repoRoot, sourcePath), root) && typeof record.category === "string") {
+          categories.add(record.category);
+        }
+      }
+    }
+
+    const pluginsJsonPath = path.join(repoRoot, "plugins.json");
+    if (await fs.pathExists(pluginsJsonPath)) {
+      const raw = await readJsonSafe(pluginsJsonPath);
+      const plugins = Array.isArray((raw as { plugins?: unknown })?.plugins) ? ((raw as { plugins: unknown[] }).plugins) : [];
+      for (const item of plugins) {
+        const record = item as Record<string, unknown>;
+        const url = typeof record.url === "string" ? record.url : undefined;
+        if (url && sameUrl(url, manifest.repository ?? manifest.homepage) && typeof record.category === "string") {
+          categories.add(record.category);
+        }
+      }
+    }
+  }
+  return categories;
+}
+
+async function readmeIssues(root: string, options: LintOptions): Promise<Issue[]> {
+  if (options.profile !== "marketplace" && !options.strict) return [];
+  const readmePath = path.join(root, "README.md");
+  if (!(await fs.pathExists(readmePath))) return [];
+
+  const content = await fs.readFile(readmePath, "utf8");
+  const refs = readmeLocalPathRefs(content);
+  const issues: Issue[] = [];
+  for (const ref of refs) {
+    const full = path.resolve(root, ref);
+    if (!isInside(root, full) || !(await fs.pathExists(full))) {
+      issues.push({
+        level: "warning",
+        impact: "advisory",
+        code: "readme.local-path.missing",
+        message: `README lists a local path that does not exist in the plugin bundle: ${ref}`,
+        file: readmePath
+      });
+    }
+  }
+  return issues;
+}
+
+function readmeLocalPathRefs(content: string): string[] {
+  const refs = new Set<string>();
+  const roots = String.raw`(?:\.codex-plugin|\.claude-plugin|skills|scripts|references|assets|agents|commands|hooks|evals|examples)`;
+  const backticks = new RegExp(String.raw`\`((?:\.{1,2}/)?${roots}(?:/[A-Za-z0-9._/-]*)?/?)\``, "g");
+  for (const match of content.matchAll(backticks)) refs.add(match[1]);
+
+  let inFence = false;
+  for (const line of content.split(/\r?\n/)) {
+    if (/^\s*```/.test(line)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (!inFence) continue;
+    const match = line.match(new RegExp(String.raw`^\s*(?:[|` + "`" + String.raw`+\-]+\s*)?(${roots}(?:/[A-Za-z0-9._/-]*)?/?)\s{2,}`));
+    if (match) refs.add(match[1]);
+  }
+
+  return Array.from(refs).filter((ref) => !ref.includes("*") && !ref.includes("<") && !ref.includes(">"));
 }
 
 async function pluginHooksIssues(root: string, manifestPath: string, hooks: z.infer<typeof pluginManifestSchema>["hooks"] | undefined, options: LintOptions): Promise<Issue[]> {
@@ -514,6 +710,45 @@ async function canBeBuilt(root: string, ref: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+function toManifestPath(value: string): string {
+  const normalized = value.replaceAll("\\", "/");
+  return normalized.startsWith("./") ? normalized : `./${normalized}`;
+}
+
+function normalizeManifestRef(value: string): string {
+  return toManifestPath(value).replace(/\/+$/, (match) => (match ? "/" : ""));
+}
+
+async function ancestorDirs(root: string): Promise<string[]> {
+  const dirs: string[] = [];
+  let current = path.resolve(root);
+  while (true) {
+    dirs.push(current);
+    const next = path.dirname(current);
+    if (next === current) break;
+    current = next;
+  }
+  return dirs;
+}
+
+async function readJsonSafe(file: string): Promise<unknown> {
+  try {
+    return JSON.parse(await fs.readFile(file, "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+function samePath(a: string, b: string): boolean {
+  return path.resolve(a).toLowerCase() === path.resolve(b).toLowerCase();
+}
+
+function sameUrl(a: string, b: string | undefined): boolean {
+  if (!b) return false;
+  const normalize = (value: string) => value.replace(/^git\+/, "").replace(/\.git$/, "").replace(/\/$/, "").toLowerCase();
+  return normalize(a) === normalize(b);
 }
 
 async function parseJsonFile(file: string, code: string): Promise<Issue[]> {

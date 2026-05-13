@@ -14,7 +14,7 @@ const program = new Command();
 program
   .name("agent-skillforge")
   .description("Creator tooling for agent skills and plugins.")
-  .version("0.3.1")
+  .version("0.3.2")
   .exitOverride();
 
 program

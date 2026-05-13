@@ -1,0 +1,13 @@
+{
+  "name": "fixture-marketplace",
+  "plugins": [
+    {
+      "name": "stark",
+      "source": {
+        "source": "local",
+        "path": "./plugins/acme/stark"
+      },
+      "category": "Development & Workflow"
+    }
+  ]
+}

@@ -50,8 +50,8 @@ Commands that write files are explicit:
 For cautious use, pin the npm version, review the source, and start with read-only commands:
 
 ```bash
-npx agent-skillforge@0.3.1 lint .
-npx agent-skillforge@0.3.1 compat . --target portable
+npx agent-skillforge@0.3.2 lint .
+npx agent-skillforge@0.3.2 compat . --target portable
 ```
 
 ## Install
@@ -95,7 +95,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: f0d010c/skillforge@v0.3.1
+      - uses: f0d010c/skillforge@v0.3.2
         with:
           path: .
           profile: source
@@ -104,7 +104,7 @@ jobs:
 For marketplace-ready checks, use:
 
 ```yaml
-      - uses: f0d010c/skillforge@v0.3.1
+      - uses: f0d010c/skillforge@v0.3.2
         with:
           path: .
           profile: marketplace
@@ -127,6 +127,9 @@ The `examples/real-world-cases/` folder contains tiny, intentionally flawed exam
 - `missing-mcp-server-file`: plugin manifest points at `./mcp.json`, but the file is absent.
 - `stale-skill-reference`: `SKILL.md` links to a reference file that no longer exists.
 - `weak-trigger-description`: skill frontmatter is valid YAML, but too vague for reliable triggering.
+- `plugin-missing-include`: bundled skills use plugin-level resources that are not declared in manifest `include`.
+- `plugin-readme-stale-path`: README file trees mention folders missing from the installable bundle.
+- `marketplace-category`: local marketplace metadata and plugin manifest categories drift apart.
 
 Try them:
 
@@ -134,6 +137,7 @@ Try them:
 npx agent-skillforge lint examples/real-world-cases/missing-mcp-server-file
 npx agent-skillforge lint examples/real-world-cases/stale-skill-reference
 npx agent-skillforge lint examples/real-world-cases/weak-trigger-description --strict
+npx agent-skillforge lint ./plugins/my-plugin --profile marketplace
 ```
 
 ## Quick Start
