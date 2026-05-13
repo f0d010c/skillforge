@@ -20,6 +20,12 @@ const configSchema = z.object({
       requireOpenAiYaml: z.boolean().optional(),
       allowScripts: z.boolean().optional()
     })
+    .optional(),
+  lint: z
+    .object({
+      ignore: z.array(z.string().min(1)).optional(),
+      allowEmptyCollection: z.boolean().optional()
+    })
     .optional()
 });
 

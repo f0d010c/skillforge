@@ -50,8 +50,8 @@ Commands that write files are explicit:
 For cautious use, pin the npm version, review the source, and start with read-only commands:
 
 ```bash
-npx agent-skillforge@0.3.0 lint .
-npx agent-skillforge@0.3.0 compat . --target portable
+npx agent-skillforge@0.3.1 lint .
+npx agent-skillforge@0.3.1 compat . --target portable
 ```
 
 ## Install
@@ -95,7 +95,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: f0d010c/skillforge@v0.3.0
+      - uses: f0d010c/skillforge@v0.3.1
         with:
           path: .
           profile: source
@@ -104,7 +104,7 @@ jobs:
 For marketplace-ready checks, use:
 
 ```yaml
-      - uses: f0d010c/skillforge@v0.3.0
+      - uses: f0d010c/skillforge@v0.3.1
         with:
           path: .
           profile: marketplace
@@ -185,6 +185,30 @@ skillforge pack ./my-plugin
 `lint .` can inspect a repository-style collection and recursively find skill/plugin folders under paths like `.agents/skills` and `plugins`.
 
 Default lint mode focuses on deterministic publish-readiness problems. Use `--strict` to include advisory checks such as trigger-description quality, large skill bodies, unreferenced scripts, and plugin name/folder mismatch.
+
+## Configuration
+
+Add `skillforge.json` at the repo or package root to tune checks:
+
+```json
+{
+  "name": "my-agent-skill-pack",
+  "lint": {
+    "ignore": [
+      "templates/**",
+      "tests/fixtures/**",
+      "examples/broken-on-purpose/**"
+    ]
+  },
+  "checks": {
+    "maxSkillMdLines": 500,
+    "requireOpenAiYaml": false,
+    "allowScripts": true
+  }
+}
+```
+
+Use `lint.ignore` for intentional fixtures, vendored examples, generated output, or template folders that should not be treated as publishable skills/plugins.
 
 ## Compatibility
 

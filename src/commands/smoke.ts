@@ -2,8 +2,10 @@ import path from "node:path";
 import fs from "fs-extra";
 import { loadConfig } from "../lib/config.js";
 import { parseMarkdownFrontmatter } from "../lib/frontmatter.js";
+import { defaultIgnoredDirs, isIgnoredPath } from "../lib/ignore.js";
 import { lintPath } from "../lib/lint.js";
 import { countErrors } from "../lib/reporters.js";
+import type { SkillForgeConfig } from "../types.js";
 
 export async function smokeCommand(targetPath: string): Promise<{ output: string; exitCode: number }> {
   const absolute = path.resolve(targetPath);
@@ -58,13 +60,16 @@ async function promptMatchScore(root: string, prompt: string): Promise<number> {
 async function findSkillFiles(root: string): Promise<string[]> {
   const direct = path.join(root, "SKILL.md");
   if (await fs.pathExists(direct)) return [direct];
+  const config = await loadConfig(root).catch((): SkillForgeConfig => ({}));
+  const ignorePatterns = config.lint?.ignore ?? [];
   const files: string[] = [];
   async function walk(dir: string, depth: number): Promise<void> {
     if (depth > 5) return;
     for (const entry of await fs.readdir(dir)) {
-      if (["node_modules", "dist", ".git"].includes(entry)) continue;
+      if (defaultIgnoredDirs.has(entry)) continue;
       const full = path.join(dir, entry);
       if (!(await fs.stat(full)).isDirectory()) continue;
+      if (isIgnoredPath(root, full, ignorePatterns)) continue;
       const skill = path.join(full, "SKILL.md");
       if (await fs.pathExists(skill)) files.push(skill);
       else await walk(full, depth + 1);

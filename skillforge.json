@@ -1,0 +1,11 @@
+{
+  "name": "agent-skillforge",
+  "lint": {
+    "allowEmptyCollection": true,
+    "ignore": [
+      "examples/real-world-cases/**",
+      "templates/**",
+      "tests/fixtures/**"
+    ]
+  }
+}

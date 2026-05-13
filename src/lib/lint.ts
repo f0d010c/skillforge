@@ -5,6 +5,7 @@ import { z } from "zod";
 import type { Issue, LintOptions, LintResult, SkillForgeConfig } from "../types.js";
 import { loadConfig } from "./config.js";
 import { parseMarkdownFrontmatter } from "./frontmatter.js";
+import { defaultIgnoredDirs, isIgnoredPath } from "./ignore.js";
 import { hyphenName } from "./paths.js";
 
 const skillFrontmatterSchema = z.object({
@@ -71,7 +72,6 @@ const pluginManifestSchema = z
   })
   .passthrough();
 
-const ignoredDirs = new Set(["node_modules", "dist", ".git", ".next", "coverage", "tmp-e2e"]);
 const advisoryCodes = new Set([
   "plugin.name.mismatch",
   "skill.description.vague",
@@ -99,18 +99,33 @@ export async function lintPath(targetPath: string, options: LintOptions = {}): P
     return applyLintOptions(direct, lintOptions);
   }
 
-  const children = await discoverLintTargets(absolute);
+  const collectionIssues: Issue[] = [];
+  const collectionConfig = await loadConfig(absolute).catch((error): SkillForgeConfig => {
+    collectionIssues.push({ level: "error", impact: "blocking", code: "config.invalid", message: String(error), file: path.join(absolute, "skillforge.json") });
+    return {};
+  });
+  const collectionOptions = { ...lintOptions, ignore: [...(lintOptions.ignore ?? []), ...(collectionConfig.lint?.ignore ?? [])] };
+  const children = await discoverLintTargets(absolute, collectionOptions.ignore);
   if (children.length === 0) {
+    if (collectionConfig.lint?.allowEmptyCollection) {
+      return {
+        targetPath: absolute,
+        kind: "collection",
+        profile: lintOptions.profile,
+        checkedPaths: [],
+        issues: filterIssues(collectionIssues, collectionOptions)
+      };
+    }
     return direct;
   }
 
-  const results = await Promise.all(children.map((child) => lintSingle(child, lintOptions)));
+  const results = await Promise.all(children.map((child) => lintSingle(child, collectionOptions)));
   return {
     targetPath: absolute,
     kind: "collection",
     profile: lintOptions.profile,
     checkedPaths: results.map((result) => result.targetPath),
-    issues: filterIssues(results.flatMap((result) => result.issues), lintOptions)
+    issues: filterIssues([...collectionIssues, ...results.flatMap((result) => result.issues)], collectionOptions)
   };
 }
 
@@ -177,15 +192,16 @@ async function lintSingle(root: string, options: LintOptions): Promise<LintResul
   return { targetPath: root, kind: isPlugin ? "plugin" : isSkill ? "skill" : "unknown", profile: options.profile, issues };
 }
 
-async function discoverLintTargets(root: string): Promise<string[]> {
+async function discoverLintTargets(root: string, ignorePatterns: string[] = []): Promise<string[]> {
   const found = new Set<string>();
   async function walk(dir: string, depth: number): Promise<void> {
     if (depth > 5) return;
     for (const entry of await fs.readdir(dir)) {
-      if (ignoredDirs.has(entry)) continue;
+      if (defaultIgnoredDirs.has(entry)) continue;
       const full = path.join(dir, entry);
       const stat = await fs.stat(full);
       if (!stat.isDirectory()) continue;
+      if (isIgnoredPath(root, full, ignorePatterns)) continue;
       if ((await fs.pathExists(path.join(full, "SKILL.md"))) || (await fs.pathExists(path.join(full, ".codex-plugin", "plugin.json")))) {
         found.add(full);
         continue;

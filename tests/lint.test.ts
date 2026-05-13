@@ -61,6 +61,19 @@ describe("lintPath", () => {
     expect(result.issues.filter((issue) => issue.level === "error")).toEqual([]);
   });
 
+  it("honors collection ignore patterns from skillforge.json", async () => {
+    const result = await lintPath(fixture("ignored-collection"));
+    expect(result.kind).toBe("unknown");
+    expect(result.issues.map((issue) => issue.code)).toContain("shape.unknown");
+  });
+
+  it("allows intentionally empty collections when configured", async () => {
+    const result = await lintPath(fixture("ignored-empty-collection"));
+    expect(result.kind).toBe("collection");
+    expect(result.checkedPaths).toEqual([]);
+    expect(result.issues).toEqual([]);
+  });
+
   it("fails plugin name mismatch", async () => {
     const result = await lintPath(fixture("plugin-name-mismatch"), { strict: true });
     expect(result.issues.map((issue) => issue.code)).toContain("plugin.name.mismatch");

@@ -13,6 +13,7 @@ export interface Issue {
 export interface LintOptions {
   strict?: boolean;
   profile?: LintProfile;
+  ignore?: string[];
 }
 
 export interface SkillForgeConfig {
@@ -26,6 +27,10 @@ export interface SkillForgeConfig {
     maxSkillMdLines?: number;
     requireOpenAiYaml?: boolean;
     allowScripts?: boolean;
+  };
+  lint?: {
+    ignore?: string[];
+    allowEmptyCollection?: boolean;
   };
 }
 

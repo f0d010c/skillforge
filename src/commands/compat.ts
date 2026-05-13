@@ -1,8 +1,10 @@
 import path from "node:path";
 import fs from "fs-extra";
 import { lintPath } from "../lib/lint.js";
+import { loadConfig } from "../lib/config.js";
 import { parseMarkdownFrontmatter } from "../lib/frontmatter.js";
-import type { Issue, IssueImpact, IssueLevel } from "../types.js";
+import { defaultIgnoredDirs, isIgnoredPath } from "../lib/ignore.js";
+import type { Issue, IssueImpact, IssueLevel, SkillForgeConfig } from "../types.js";
 
 export type CompatTarget = "codex" | "claude" | "portable";
 export type CompatFormat = "text" | "json";
@@ -113,6 +115,8 @@ async function scriptPortabilityIssues(root: string): Promise<Issue[]> {
 
 async function findSkillFiles(root: string): Promise<string[]> {
   const found: string[] = [];
+  const config = await loadConfig(root).catch((): SkillForgeConfig => ({}));
+  const ignorePatterns = config.lint?.ignore ?? [];
   async function walk(dir: string, depth: number): Promise<void> {
     if (depth > 5) return;
     const skillPath = path.join(dir, "SKILL.md");
@@ -121,10 +125,10 @@ async function findSkillFiles(root: string): Promise<string[]> {
       return;
     }
     for (const entry of await fs.readdir(dir)) {
-      if (["node_modules", "dist", ".git", ".next", "coverage"].includes(entry)) continue;
+      if (defaultIgnoredDirs.has(entry)) continue;
       const full = path.join(dir, entry);
       const stat = await fs.stat(full);
-      if (stat.isDirectory()) await walk(full, depth + 1);
+      if (stat.isDirectory() && !isIgnoredPath(root, full, ignorePatterns)) await walk(full, depth + 1);
     }
   }
   await walk(root, 0);
