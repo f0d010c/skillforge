@@ -27,8 +27,6 @@ runs:
       uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
       with:
         node-version: "24"
-        cache: "npm"
-        cache-dependency-path: ${{ github.action_path }}/package-lock.json
     - name: Install SkillForge dependencies
       shell: bash
       run: npm ci

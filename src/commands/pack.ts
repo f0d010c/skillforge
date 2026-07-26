@@ -66,7 +66,7 @@ async function writeArchive(source: string, zipPath: string, files: string[]): P
     archive.on("error", reject);
     archive.pipe(output);
     for (const relative of files) {
-      archive.file(path.join(source, relative), {
+      archive.append(fs.createReadStream(path.join(source, relative)), {
         name: relative,
         date: stableDate,
         mode: 0o100644
