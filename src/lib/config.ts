@@ -3,31 +3,38 @@ import fs from "fs-extra";
 import { z } from "zod";
 import type { SkillForgeConfig } from "../types.js";
 
-const configSchema = z.object({
-  name: z.string().optional(),
-  type: z.enum(["skill", "plugin"]).optional(),
-  examples: z
-    .array(
-      z.object({
-        prompt: z.string(),
-        shouldTrigger: z.boolean()
+const configSchema = z
+  .object({
+    name: z.string().optional(),
+    type: z.enum(["skill", "plugin"]).optional(),
+    examples: z
+      .array(
+        z
+          .object({
+            prompt: z.string(),
+            shouldTrigger: z.boolean(),
+            expectedSkill: z.string().min(1).optional()
+          })
+          .strict()
+      )
+      .optional(),
+    checks: z
+      .object({
+        maxSkillMdLines: z.number().int().positive().optional(),
+        requireOpenAiYaml: z.boolean().optional(),
+        allowScripts: z.boolean().optional()
       })
-    )
-    .optional(),
-  checks: z
-    .object({
-      maxSkillMdLines: z.number().int().positive().optional(),
-      requireOpenAiYaml: z.boolean().optional(),
-      allowScripts: z.boolean().optional()
-    })
-    .optional(),
-  lint: z
-    .object({
-      ignore: z.array(z.string().min(1)).optional(),
-      allowEmptyCollection: z.boolean().optional()
-    })
-    .optional()
-});
+      .strict()
+      .optional(),
+    lint: z
+      .object({
+        ignore: z.array(z.string().min(1)).optional(),
+        allowEmptyCollection: z.boolean().optional()
+      })
+      .strict()
+      .optional()
+  })
+  .strict();
 
 export async function loadConfig(targetPath: string): Promise<SkillForgeConfig> {
   const configPath = path.join(targetPath, "skillforge.json");

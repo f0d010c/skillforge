@@ -7,7 +7,7 @@ They are not random fixtures; each one maps to a common publish-readiness failur
 - `missing-mcp-server-file`: a plugin manifest references an MCP config file that is not shipped.
 - `stale-skill-reference`: a skill points to a reference doc that was renamed or deleted.
 - `weak-trigger-description`: a skill has valid frontmatter, but the description does not clearly say when an agent should use it.
-- `plugin-missing-include`: bundled skills reference plugin-level resources that are not declared in manifest `include`.
+- `plugin-missing-include`: historical directory name containing a plugin that uses the now-unsupported manifest `include` field.
 - `plugin-readme-stale-path`: a README file tree documents folders that are absent from the installable bundle.
 - `marketplace-category`: local marketplace metadata and plugin manifest categories disagree.
 

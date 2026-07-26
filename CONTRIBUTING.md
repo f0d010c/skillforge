@@ -1,45 +1,35 @@
 # Contributing
 
-Thanks for helping improve SkillForge.
+The most valuable SkillForge contributions reduce false positives, catch real install or packaging failures, or keep generated output aligned with current agent contracts.
 
-The most valuable contributions are real Codex skill/plugin repos that expose:
-
-- false positives
-- missing publish-readiness checks
-- unclear scaffold defaults
-- marketplace packaging edge cases
-
-## Local Setup
+## Setup
 
 ```bash
-npm install
-npm run build
-npm test
+npm ci
+npm run check
+npm run coverage
 ```
 
-## Before Opening A PR
+Before opening a pull request:
 
 ```bash
-npm run build
-npm test
 npm audit
 npm pack --dry-run
+git diff --check
 ```
 
-## Rule Changes
+## Rule changes
 
-When adding or changing lint rules:
+- Add a focused fixture or temporary-directory test.
+- Include both positive and negative cases.
+- Reserve errors for invalid contracts, broken installation, unsafe packaging, or failed explicit expectations.
+- Use warnings for subjective quality and maintainability guidance.
+- Verify generated templates, not only handwritten fixtures.
+- Keep current contract rules in `src/lib/contracts.ts`.
+- Avoid duplicating packaging policy outside `src/lib/package-files.ts`.
 
-- add a fixture under `tests/fixtures`
-- add or update a Vitest case
-- prefer warnings for subjective quality checks
-- reserve errors for broken structure, missing files, invalid manifests, or failed smoke expectations
+For a real-repository report, include the repository URL, exact command, tool version, finding classification, and minimal reproduction.
 
-## Real-Repo Audits
+## Pull requests
 
-If you run SkillForge against a public Codex extension repo, include:
-
-- repo URL
-- command used
-- output summary
-- whether findings are true positives, false positives, or rule suggestions
+Describe the failure mode, behavior change, evidence, compatibility impact, and intentionally deferred work. Changes to a public rule code should document whether it is new, renamed, or removed.

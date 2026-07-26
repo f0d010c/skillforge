@@ -2,9 +2,15 @@
   "name": "stark",
   "version": "1.0.0",
   "description": "A plugin whose manifest category differs from local marketplace metadata.",
+  "author": { "name": "SkillForge examples" },
   "skills": "./skills/",
   "interface": {
     "displayName": "Stark",
-    "category": "Developer Tools"
+    "shortDescription": "Demonstrates marketplace category drift.",
+    "longDescription": "An example plugin with intentionally inconsistent marketplace metadata.",
+    "developerName": "SkillForge examples",
+    "category": "Developer Tools",
+    "capabilities": ["Workflow"],
+    "defaultPrompt": ["Use Stark for this workflow."]
   }
 }

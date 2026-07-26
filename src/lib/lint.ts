@@ -4,74 +4,17 @@ import YAML from "yaml";
 import { z } from "zod";
 import type { Issue, LintOptions, LintResult, SkillForgeConfig } from "../types.js";
 import { loadConfig } from "./config.js";
+import { openAiYamlSchema, pluginManifestSchema, type PluginManifest } from "./contracts.js";
 import { parseMarkdownFrontmatter } from "./frontmatter.js";
 import { defaultIgnoredDirs, isIgnoredPath } from "./ignore.js";
 import { hyphenName } from "./paths.js";
 
 const skillFrontmatterSchema = z.object({
   name: z.string().min(1),
-  description: z.string().min(1)
+  description: z.string().min(1),
+  "disable-model-invocation": z.literal(false).optional(),
+  disable_model_invocation: z.literal(false).optional()
 });
-
-const openAiYamlSchema = z
-  .object({
-    interface: z
-      .object({
-        display_name: z.string().optional(),
-        short_description: z.string().optional(),
-        icon_small: z.string().optional(),
-        icon_large: z.string().optional(),
-        brand_color: z.string().optional(),
-        default_prompt: z.string().optional()
-      })
-      .passthrough()
-      .optional(),
-    policy: z
-      .object({
-        allow_implicit_invocation: z.boolean().optional()
-      })
-      .passthrough()
-      .optional(),
-    dependencies: z.record(z.string(), z.unknown()).optional()
-  })
-  .passthrough();
-
-const pluginManifestSchema = z
-  .object({
-    name: z.string().min(1),
-    version: z.string().min(1).optional(),
-    description: z.string().min(1).optional(),
-    author: z.unknown().optional(),
-    homepage: z.string().optional(),
-    repository: z.string().optional(),
-    license: z.string().optional(),
-    keywords: z.array(z.string()).optional(),
-    skills: z.union([z.string(), z.array(z.string())]).optional(),
-    include: z.union([z.string(), z.array(z.string())]).optional(),
-    mcpServers: z.string().optional(),
-    apps: z.string().optional(),
-    hooks: z.union([z.string(), z.array(z.string()), z.record(z.string(), z.unknown()), z.array(z.record(z.string(), z.unknown()))]).optional(),
-    interface: z
-      .object({
-        displayName: z.string().optional(),
-        shortDescription: z.string().optional(),
-        longDescription: z.string().optional(),
-        developerName: z.string().optional(),
-        category: z.string().optional(),
-        capabilities: z.array(z.string()).optional(),
-        websiteURL: z.string().optional(),
-        privacyPolicyURL: z.string().optional(),
-        termsOfServiceURL: z.string().optional(),
-        defaultPrompt: z.union([z.string(), z.array(z.string())]).optional(),
-        brandColor: z.string().optional(),
-        composerIcon: z.string().optional(),
-        logo: z.string().optional(),
-        screenshots: z.array(z.string()).optional()
-      })
-      .passthrough()
-      .optional()
-  })
-  .passthrough();
 
 const advisoryCodes = new Set([
   "plugin.name.mismatch",
@@ -91,7 +34,15 @@ export async function lintPath(targetPath: string, options: LintOptions = {}): P
       targetPath: absolute,
       kind: "unknown",
       profile: lintOptions.profile,
-      issues: [{ level: "error", impact: "blocking", code: "path.missing", message: "Target path does not exist.", file: absolute }]
+      issues: [
+        {
+          level: "error",
+          impact: "blocking",
+          code: "path.missing",
+          message: "Target path does not exist.",
+          file: absolute
+        }
+      ]
     };
   }
 
@@ -102,10 +53,19 @@ export async function lintPath(targetPath: string, options: LintOptions = {}): P
 
   const collectionIssues: Issue[] = [];
   const collectionConfig = await loadConfig(absolute).catch((error): SkillForgeConfig => {
-    collectionIssues.push({ level: "error", impact: "blocking", code: "config.invalid", message: String(error), file: path.join(absolute, "skillforge.json") });
+    collectionIssues.push({
+      level: "error",
+      impact: "blocking",
+      code: "config.invalid",
+      message: String(error),
+      file: path.join(absolute, "skillforge.json")
+    });
     return {};
   });
-  const collectionOptions = { ...lintOptions, ignore: [...(lintOptions.ignore ?? []), ...(collectionConfig.lint?.ignore ?? [])] };
+  const collectionOptions = {
+    ...lintOptions,
+    ignore: [...(lintOptions.ignore ?? []), ...(collectionConfig.lint?.ignore ?? [])]
+  };
   const children = await discoverLintTargets(absolute, collectionOptions.ignore);
   if (children.length === 0) {
     if (collectionConfig.lint?.allowEmptyCollection) {
@@ -150,7 +110,13 @@ async function lintSingle(root: string, options: LintOptions): Promise<LintResul
   const isSkill = await fs.pathExists(skillPath);
   const isPlugin = await fs.pathExists(pluginPath);
   const config = await loadConfig(root).catch((error): SkillForgeConfig => {
-    issues.push({ level: "error", impact: "blocking", code: "config.invalid", message: String(error), file: path.join(root, "skillforge.json") });
+    issues.push({
+      level: "error",
+      impact: "blocking",
+      code: "config.invalid",
+      message: String(error),
+      file: path.join(root, "skillforge.json")
+    });
     return {};
   });
 
@@ -165,7 +131,8 @@ async function lintSingle(root: string, options: LintOptions): Promise<LintResul
       level: "error",
       impact: "blocking",
       code: "shape.unknown",
-      message: "Expected a skill folder with SKILL.md, a plugin folder with .codex-plugin/plugin.json, or a repository containing such folders.",
+      message:
+        "Expected a skill folder with SKILL.md, a plugin folder with .codex-plugin/plugin.json, or a repository containing such folders.",
       file: root
     });
   }
@@ -190,7 +157,12 @@ async function lintSingle(root: string, options: LintOptions): Promise<LintResul
     });
   }
 
-  return { targetPath: root, kind: isPlugin ? "plugin" : isSkill ? "skill" : "unknown", profile: options.profile, issues };
+  return {
+    targetPath: root,
+    kind: isPlugin ? "plugin" : isSkill ? "skill" : "unknown",
+    profile: options.profile,
+    issues
+  };
 }
 
 async function discoverLintTargets(root: string, ignorePatterns: string[] = []): Promise<string[]> {
@@ -203,7 +175,10 @@ async function discoverLintTargets(root: string, ignorePatterns: string[] = []):
       const stat = await fs.stat(full);
       if (!stat.isDirectory()) continue;
       if (isIgnoredPath(root, full, ignorePatterns)) continue;
-      if ((await fs.pathExists(path.join(full, "SKILL.md"))) || (await fs.pathExists(path.join(full, ".codex-plugin", "plugin.json")))) {
+      if (
+        (await fs.pathExists(path.join(full, "SKILL.md"))) ||
+        (await fs.pathExists(path.join(full, ".codex-plugin", "plugin.json")))
+      ) {
         found.add(full);
         continue;
       }
@@ -214,26 +189,61 @@ async function discoverLintTargets(root: string, ignorePatterns: string[] = []):
   return Array.from(found).sort();
 }
 
-async function lintSkill(root: string, maxSkillMdLines: number, options: LintOptions, referenceRoot = root): Promise<Issue[]> {
+async function lintSkill(
+  root: string,
+  maxSkillMdLines: number,
+  options: LintOptions,
+  referenceRoot = root
+): Promise<Issue[]> {
   const issues: Issue[] = [];
   const skillPath = path.join(root, "SKILL.md");
   const content = await fs.readFile(skillPath, "utf8");
   const frontmatter = parseMarkdownFrontmatter(content);
 
   if (!frontmatter) {
-    return [{ level: "error", impact: "blocking", code: "skill.frontmatter.missing", message: "SKILL.md must start with YAML frontmatter.", file: skillPath }];
+    return [
+      {
+        level: "error",
+        impact: "blocking",
+        code: "skill.frontmatter.missing",
+        message: "SKILL.md must start with YAML frontmatter.",
+        file: skillPath
+      }
+    ];
   }
 
   const parsed = skillFrontmatterSchema.safeParse(frontmatter.data);
   if (!parsed.success) {
-    issues.push({ level: "error", impact: "blocking", code: "skill.frontmatter.invalid", message: parsed.error.message, file: skillPath });
+    issues.push({
+      level: "error",
+      impact: "blocking",
+      code: "skill.frontmatter.invalid",
+      message: parsed.error.message,
+      file: skillPath
+    });
   } else {
     const { name, description } = parsed.data;
     if (name !== hyphenName(name) || name.length > 64) {
-      issues.push({ level: "error", impact: "blocking", code: "skill.name.invalid", message: "Skill name must be lowercase hyphen-case and <= 64 characters.", file: skillPath });
+      issues.push({
+        level: "error",
+        impact: "blocking",
+        code: "skill.name.invalid",
+        message: "Skill name must be lowercase hyphen-case and <= 64 characters.",
+        file: skillPath
+      });
     }
-    if (name !== path.basename(root) && !root.includes(`${path.sep}plugins${path.sep}`) && !root.includes(`${path.sep}.agents${path.sep}skills${path.sep}`)) {
-      issues.push({ level: "warning", impact: "advisory", code: "skill.name.folder-mismatch", message: "Skill folder name should match frontmatter name for predictable installs.", file: skillPath });
+    if (
+      name !== path.basename(root) &&
+      !root.includes(`${path.sep}plugins${path.sep}`) &&
+      !root.includes(`${path.sep}.agents${path.sep}skills${path.sep}`)
+    ) {
+      issues.push({
+        level: "warning",
+        impact: "advisory",
+        code: "skill.name.folder-mismatch",
+        message: "Skill folder name should match frontmatter name for predictable installs.",
+        file: skillPath
+      });
     }
     issues.push(...descriptionIssues(description, skillPath));
   }
@@ -259,21 +269,43 @@ function descriptionIssues(description: string, file: string): Issue[] {
   const issues: Issue[] = [];
   const lower = description.toLowerCase();
   if (description.length < 80 || !/\b(use|when|triggers?|applies|for)\b/.test(lower)) {
-    issues.push({ level: "warning", impact: "advisory", code: "skill.description.vague", message: "Description should clearly say what the skill does and when Codex should use it.", file });
+    issues.push({
+      level: "warning",
+      impact: "advisory",
+      code: "skill.description.vague",
+      message: "Description should clearly say what the skill does and when Codex should use it.",
+      file
+    });
   }
   if (!/\b(when|use|trigger|applies|for)\b/.test(lower.slice(0, 160))) {
-    issues.push({ level: "warning", impact: "advisory", code: "skill.description.trigger-late", message: "Front-load trigger words because Codex may shorten large skill lists.", file });
+    issues.push({
+      level: "warning",
+      impact: "advisory",
+      code: "skill.description.trigger-late",
+      message: "Front-load trigger words because Codex may shorten large skill lists.",
+      file
+    });
   }
   if (description.length > 700) {
-    issues.push({ level: "warning", impact: "advisory", code: "skill.description.long", message: "Description is long; keep trigger metadata concise and move details to the body.", file });
+    issues.push({
+      level: "warning",
+      impact: "advisory",
+      code: "skill.description.long",
+      message: "Description is long; keep trigger metadata concise and move details to the body.",
+      file
+    });
   }
   return issues;
 }
 
 async function referenceIssues(root: string, content: string, file: string): Promise<Issue[]> {
   const issues: Issue[] = [];
-  const markdownLinks = Array.from(content.matchAll(/!?\[[^\]]*]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g)).map((match) => ({ ref: match[1], impact: "blocking" as const }));
-  const inlinePaths = Array.from(content.matchAll(/`((?:\.{1,2}\/)?(?:scripts|references|assets|agents)\/[A-Za-z0-9._/-]+)`/g)).map((match) => ({
+  const markdownLinks = Array.from(content.matchAll(/!?\[[^\]]*]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g)).map(
+    (match) => ({ ref: match[1], impact: "blocking" as const })
+  );
+  const inlinePaths = Array.from(
+    content.matchAll(/`((?:\.{1,2}\/)?(?:scripts|references|assets|agents)\/[A-Za-z0-9._/-]+)`/g)
+  ).map((match) => ({
     ref: match[1],
     impact: "advisory" as const
   }));
@@ -284,7 +316,13 @@ async function referenceIssues(root: string, content: string, file: string): Pro
     if (!clean || clean.includes("<") || clean.includes(">") || clean.includes("*") || clean.includes("\\")) continue;
     const fullPath = path.resolve(path.dirname(file), clean);
     if (!isInside(root, fullPath) || !(await fs.pathExists(fullPath))) {
-      issues.push({ level: "error", impact, code: "reference.missing", message: `Referenced file does not exist: ${ref}`, file });
+      issues.push({
+        level: impact === "blocking" ? "error" : "warning",
+        impact,
+        code: "reference.missing",
+        message: `Referenced file does not exist: ${ref}`,
+        file
+      });
     }
   }
   return issues;
@@ -308,10 +346,22 @@ async function scriptIssues(root: string, skillMd: string): Promise<Issue[]> {
     const stat = await fs.stat(fullPath);
     if (!stat.isFile()) continue;
     if (!/\.(js|mjs|cjs|ts|py|ps1|sh|bat|cmd)$/i.test(entry)) {
-      issues.push({ level: "warning", impact: "advisory", code: "script.extension.unknown", message: "Script has an uncommon extension; include clear invocation notes in SKILL.md.", file: fullPath });
+      issues.push({
+        level: "warning",
+        impact: "advisory",
+        code: "script.extension.unknown",
+        message: "Script has an uncommon extension; include clear invocation notes in SKILL.md.",
+        file: fullPath
+      });
     }
     if (!skillMd.includes(`scripts/${entry}`)) {
-      issues.push({ level: "warning", impact: "advisory", code: "script.unreferenced", message: "Script is not mentioned in SKILL.md, so Codex may not know when to use it.", file: fullPath });
+      issues.push({
+        level: "warning",
+        impact: "advisory",
+        code: "script.unreferenced",
+        message: "Script is not mentioned in SKILL.md, so Codex may not know when to use it.",
+        file: fullPath
+      });
     }
   }
   return issues;
@@ -323,11 +373,22 @@ async function openAiYamlIssues(root: string, options: LintOptions): Promise<Iss
   let raw: unknown;
   try {
     raw = YAML.parse(await fs.readFile(file, "utf8"));
-    const parsed = openAiYamlSchema.parse(raw);
     const issues: Issue[] = [];
-    if (raw && typeof raw === "object" && ["display_name", "short_description", "default_prompt"].some((key) => key in (raw as Record<string, unknown>))) {
-      issues.push({ level: "error", impact: "blocking", code: "metadata.openai-yaml.legacy-shape", message: "agents/openai.yaml fields must live under interface:, not at the top level.", file });
+    if (
+      raw &&
+      typeof raw === "object" &&
+      ["display_name", "short_description", "default_prompt"].some((key) => key in (raw as Record<string, unknown>))
+    ) {
+      issues.push({
+        level: "error",
+        impact: "blocking",
+        code: "metadata.openai-yaml.legacy-shape",
+        message: "agents/openai.yaml fields must live under interface:, not at the top level.",
+        file
+      });
+      return issues;
     }
+    const parsed = openAiYamlSchema.parse(raw);
     for (const asset of [parsed.interface?.icon_small, parsed.interface?.icon_large].filter(Boolean) as string[]) {
       issues.push(...(await pluginPathIssues(root, file, asset, "metadata.asset", options)));
     }
@@ -340,64 +401,155 @@ async function openAiYamlIssues(root: string, options: LintOptions): Promise<Iss
 async function lintPlugin(root: string, options: LintOptions): Promise<Issue[]> {
   const issues: Issue[] = [];
   const manifestPath = path.join(root, ".codex-plugin", "plugin.json");
-  let manifest: z.infer<typeof pluginManifestSchema>;
+  let manifest: PluginManifest;
+  let manifestJson: unknown;
 
   try {
-    manifest = pluginManifestSchema.parse(JSON.parse(await fs.readFile(manifestPath, "utf8")));
+    manifestJson = JSON.parse(await fs.readFile(manifestPath, "utf8"));
+    manifest = pluginManifestSchema.parse(manifestJson);
   } catch (error) {
-    return [{ level: "error", impact: "blocking", code: "plugin.manifest.invalid", message: String(error), file: manifestPath }];
+    return [
+      {
+        level: "error",
+        impact: "blocking",
+        code: "plugin.manifest.invalid",
+        message: String(error),
+        file: manifestPath
+      }
+    ];
+  }
+
+  if (containsTodoPlaceholder(manifestJson)) {
+    issues.push({
+      level: "error",
+      impact: "blocking",
+      code: "plugin.manifest.placeholder",
+      message: "Plugin manifest still contains an unresolved [TODO: ...] placeholder.",
+      file: manifestPath
+    });
   }
 
   const folderName = path.basename(root);
   if (manifest.name !== folderName) {
-    issues.push({ level: "warning", impact: "advisory", code: "plugin.name.mismatch", message: `Manifest name "${manifest.name}" differs from folder name "${folderName}". This is valid for some repo-level packages but can confuse local plugin installs.`, file: manifestPath });
+    issues.push({
+      level: "warning",
+      impact: "advisory",
+      code: "plugin.name.mismatch",
+      message: `Manifest name "${manifest.name}" differs from folder name "${folderName}". This is valid for some repo-level packages but can confuse local plugin installs.`,
+      file: manifestPath
+    });
   }
   if (manifest.name !== hyphenName(manifest.name) || manifest.name.length > 64) {
-    issues.push({ level: "error", impact: "blocking", code: "plugin.name.invalid", message: "Plugin name must be lowercase hyphen-case and <= 64 characters.", file: manifestPath });
+    issues.push({
+      level: "error",
+      impact: "blocking",
+      code: "plugin.name.invalid",
+      message: "Plugin name must be lowercase hyphen-case and <= 64 characters.",
+      file: manifestPath
+    });
   }
-  if (!manifest.version) {
-    issues.push({ level: "warning", impact: "advisory", code: "plugin.version.missing", message: "Published plugins should include a version.", file: manifestPath });
-  }
-  if (!manifest.description || manifest.description.length < 20) {
-    issues.push({ level: "warning", impact: "advisory", code: "plugin.description.vague", message: "Published plugins should include a useful description.", file: manifestPath });
+  if (manifest.description.length < 20) {
+    issues.push({
+      level: "warning",
+      impact: "advisory",
+      code: "plugin.description.vague",
+      message: "Published plugins should include a useful description.",
+      file: manifestPath
+    });
   }
 
   issues.push(...(await pluginSkillsIssues(root, manifestPath, manifest.skills, options)));
-  issues.push(...(await pluginIncludeIssues(root, manifestPath, manifest.include, options)));
-  issues.push(...(await pluginBundledResourceIssues(root, manifestPath, manifest, options)));
   issues.push(...(await marketplaceMetadataIssues(root, manifestPath, manifest, options)));
   issues.push(...(await readmeIssues(root, options)));
   issues.push(...(await mcpServersIssues(root, manifestPath, manifest.mcpServers, options)));
-  issues.push(...(await optionalManifestPath(root, manifestPath, manifest.apps, "plugin.apps", options)));
-  issues.push(...(await pluginHooksIssues(root, manifestPath, manifest.hooks, options)));
+  issues.push(...(await appManifestIssues(root, manifestPath, manifest.apps, options)));
 
-  const defaultHooks = path.join(root, "hooks", "hooks.json");
-  if (!manifest.hooks && (await fs.pathExists(defaultHooks))) {
-    issues.push(...(await parseJsonFile(defaultHooks, "plugin.hooks.invalid")));
-    issues.push(hooksFeatureFlagIssue(manifestPath));
-  }
-
-  for (const asset of [manifest.interface?.composerIcon, manifest.interface?.logo, ...(manifest.interface?.screenshots ?? [])].filter(Boolean) as string[]) {
+  for (const asset of [
+    manifest.interface.composerIcon,
+    manifest.interface.logo,
+    manifest.interface.logoDark,
+    ...(manifest.interface.screenshots ?? [])
+  ].filter(Boolean) as string[]) {
     issues.push(...(await pluginPathIssues(root, manifestPath, asset, "plugin.asset", options)));
+  }
+  for (const screenshot of manifest.interface.screenshots ?? []) {
+    const normalized = screenshot.replaceAll("\\", "/");
+    if (!normalized.startsWith("./assets/") || path.extname(normalized).toLowerCase() !== ".png") {
+      issues.push({
+        level: "error",
+        impact: "blocking",
+        code: "plugin.screenshot.invalid",
+        message: `Screenshots must be PNG files under ./assets/: ${screenshot}`,
+        file: manifestPath
+      });
+    }
+  }
+  const prompts = manifest.interface.defaultPrompt ?? manifest.interface.default_prompt;
+  const promptList = (Array.isArray(prompts) ? prompts : [prompts]).filter(
+    (prompt): prompt is string => typeof prompt === "string"
+  );
+  if (promptList.length > 3) {
+    issues.push({
+      level: "warning",
+      impact: "advisory",
+      code: "plugin.default-prompt.too-many",
+      message: "Only the first three default prompts are used.",
+      file: manifestPath
+    });
+  }
+  if (promptList.some((prompt) => prompt.length > 128)) {
+    issues.push({
+      level: "warning",
+      impact: "advisory",
+      code: "plugin.default-prompt.long",
+      message: "Default prompts longer than 128 characters are truncated.",
+      file: manifestPath
+    });
   }
 
   return issues;
 }
 
-async function pluginSkillsIssues(root: string, manifestPath: string, skills: string | string[] | undefined, options: LintOptions): Promise<Issue[]> {
+async function pluginSkillsIssues(
+  root: string,
+  manifestPath: string,
+  skills: string | undefined,
+  options: LintOptions
+): Promise<Issue[]> {
   const issues: Issue[] = [];
   if (!skills) return issues;
-  for (const ref of Array.isArray(skills) ? skills : [skills]) {
-    issues.push(...(await pluginPathIssues(root, manifestPath, ref, "plugin.skills", options)));
+  const normalized = normalizeContractPath(skills);
+  if (normalized !== "skills") {
+    issues.push({
+      level: "error",
+      impact: "blocking",
+      code: "plugin.skills.contract-path",
+      message: "Plugin skills must resolve to the conventional skills directory.",
+      file: manifestPath
+    });
+    return issues;
+  }
+  for (const ref of [skills]) {
+    issues.push(...(await contractPathIssues(root, manifestPath, ref, "plugin.skills", options)));
     const full = path.resolve(root, ref);
     if (!(await fs.pathExists(full))) continue;
     const stat = await fs.stat(full);
     if (!stat.isDirectory()) continue;
     const directSkill = await fs.pathExists(path.join(full, "SKILL.md"));
     const entries = await fs.readdir(full);
-    const skillFolders = await Promise.all(entries.map(async (entry) => ((await fs.pathExists(path.join(full, entry, "SKILL.md"))) ? path.join(full, entry) : null)));
+    const skillFolders = await Promise.all(
+      entries.map(async (entry) =>
+        (await fs.pathExists(path.join(full, entry, "SKILL.md"))) ? path.join(full, entry) : null
+      )
+    );
     if (!directSkill && !skillFolders.some(Boolean)) {
-      issues.push({ level: "error", impact: "blocking", code: "plugin.skills.empty", message: `Skills path does not contain any SKILL.md files: ${ref}`, file: manifestPath });
+      issues.push({
+        level: "error",
+        impact: "blocking",
+        code: "plugin.skills.empty",
+        message: `Skills path does not contain any SKILL.md files: ${ref}`,
+        file: manifestPath
+      });
     }
     if (directSkill) issues.push(...(await lintSkill(full, 500, options, root)));
     for (const skillFolder of skillFolders.filter(Boolean) as string[]) {
@@ -407,103 +559,10 @@ async function pluginSkillsIssues(root: string, manifestPath: string, skills: st
   return issues;
 }
 
-async function pluginIncludeIssues(root: string, manifestPath: string, include: string | string[] | undefined, options: LintOptions): Promise<Issue[]> {
-  if (!include) return [];
-  const issues: Issue[] = [];
-  for (const ref of Array.isArray(include) ? include : [include]) {
-    issues.push(...(await pluginPathIssues(root, manifestPath, ref, "plugin.include", options)));
-  }
-  return issues;
-}
-
-async function pluginBundledResourceIssues(
-  root: string,
-  manifestPath: string,
-  manifest: z.infer<typeof pluginManifestSchema>,
-  options: LintOptions
-): Promise<Issue[]> {
-  if (options.profile !== "marketplace" && !options.strict) return [];
-  const skillRefs = Array.isArray(manifest.skills) ? manifest.skills : manifest.skills ? [manifest.skills] : [];
-  const referenced = new Set<string>();
-
-  for (const skillRef of skillRefs) {
-    const skillRoot = path.resolve(root, skillRef);
-    if (!(await fs.pathExists(skillRoot))) continue;
-    const skillFiles = await skillFilesUnder(skillRoot);
-    for (const file of skillFiles) {
-      const content = await fs.readFile(file, "utf8");
-      for (const ref of extractResourceReferences(content)) {
-        const absolute = path.resolve(path.dirname(file), ref);
-        if (!isInside(root, absolute) || !(await fs.pathExists(absolute))) continue;
-        const relative = toManifestPath(path.relative(root, absolute));
-        if (!relative.startsWith("./skills/")) {
-          referenced.add(relative);
-        }
-      }
-    }
-  }
-
-  const covered = manifestPathRefs(manifest);
-  const issues: Issue[] = [];
-  for (const ref of Array.from(referenced).sort()) {
-    if (!isCoveredByManifest(ref, covered)) {
-      issues.push({
-        level: options.profile === "marketplace" ? "error" : "warning",
-        impact: options.profile === "marketplace" ? "blocking" : "advisory",
-        code: "plugin.include.resource-missing",
-        message: `Bundled skills reference ${ref}, but the plugin manifest does not include it for install packaging.`,
-        file: manifestPath
-      });
-    }
-  }
-  return issues;
-}
-
-async function skillFilesUnder(root: string): Promise<string[]> {
-  const direct = path.join(root, "SKILL.md");
-  if (await fs.pathExists(direct)) return [direct];
-  const files: string[] = [];
-  for (const entry of await fs.readdir(root)) {
-    const candidate = path.join(root, entry, "SKILL.md");
-    if (await fs.pathExists(candidate)) files.push(candidate);
-  }
-  return files;
-}
-
-function extractResourceReferences(content: string): string[] {
-  const refs = new Set<string>();
-  const markdownLinks = content.matchAll(/!?\[[^\]]*]\(([^)\s]+)(?:\s+["'][^"']*["'])?\)/g);
-  for (const match of markdownLinks) refs.add(match[1]);
-  const inlinePaths = content.matchAll(/`((?:\.{1,2}\/)+(?:scripts|references|assets|agents|commands)\/[A-Za-z0-9._/-]+)`/g);
-  for (const match of inlinePaths) refs.add(match[1]);
-  return Array.from(refs)
-    .map((ref) => ref.split("#")[0].split("?")[0])
-    .filter((ref) => ref && !/^[a-z][a-z0-9+.-]*:/i.test(ref));
-}
-
-function manifestPathRefs(manifest: z.infer<typeof pluginManifestSchema>): string[] {
-  const refs = [
-    ...(Array.isArray(manifest.include) ? manifest.include : manifest.include ? [manifest.include] : []),
-    ...(Array.isArray(manifest.skills) ? manifest.skills : manifest.skills ? [manifest.skills] : []),
-    manifest.mcpServers,
-    manifest.apps,
-    ...(typeof manifest.hooks === "string" ? [manifest.hooks] : Array.isArray(manifest.hooks) && manifest.hooks.every((hook) => typeof hook === "string") ? (manifest.hooks as string[]) : []),
-    manifest.interface?.composerIcon,
-    manifest.interface?.logo,
-    ...(manifest.interface?.screenshots ?? [])
-  ].filter(Boolean) as string[];
-  return refs.map(normalizeManifestRef);
-}
-
-function isCoveredByManifest(ref: string, manifestRefs: string[]): boolean {
-  const normalized = normalizeManifestRef(ref);
-  return manifestRefs.some((entry) => entry.endsWith("/") ? normalized.startsWith(entry) : normalized === entry);
-}
-
 async function marketplaceMetadataIssues(
   root: string,
   manifestPath: string,
-  manifest: z.infer<typeof pluginManifestSchema>,
+  manifest: PluginManifest,
   options: LintOptions
 ): Promise<Issue[]> {
   if (options.profile !== "marketplace") return [];
@@ -522,13 +581,15 @@ async function marketplaceMetadataIssues(
     }));
 }
 
-async function marketplaceCategories(root: string, manifest: z.infer<typeof pluginManifestSchema>): Promise<Set<string>> {
+async function marketplaceCategories(root: string, manifest: PluginManifest): Promise<Set<string>> {
   const categories = new Set<string>();
   for (const repoRoot of await ancestorDirs(root)) {
     const marketplacePath = path.join(repoRoot, ".agents", "plugins", "marketplace.json");
     if (await fs.pathExists(marketplacePath)) {
       const raw = await readJsonSafe(marketplacePath);
-      const plugins = Array.isArray((raw as { plugins?: unknown })?.plugins) ? ((raw as { plugins: unknown[] }).plugins) : [];
+      const plugins = Array.isArray((raw as { plugins?: unknown })?.plugins)
+        ? (raw as { plugins: unknown[] }).plugins
+        : [];
       for (const item of plugins) {
         const record = item as Record<string, unknown>;
         const source = record.source as Record<string, unknown> | undefined;
@@ -542,7 +603,9 @@ async function marketplaceCategories(root: string, manifest: z.infer<typeof plug
     const pluginsJsonPath = path.join(repoRoot, "plugins.json");
     if (await fs.pathExists(pluginsJsonPath)) {
       const raw = await readJsonSafe(pluginsJsonPath);
-      const plugins = Array.isArray((raw as { plugins?: unknown })?.plugins) ? ((raw as { plugins: unknown[] }).plugins) : [];
+      const plugins = Array.isArray((raw as { plugins?: unknown })?.plugins)
+        ? (raw as { plugins: unknown[] }).plugins
+        : [];
       for (const item of plugins) {
         const record = item as Record<string, unknown>;
         const url = typeof record.url === "string" ? record.url : undefined;
@@ -591,39 +654,134 @@ function readmeLocalPathRefs(content: string): string[] {
       continue;
     }
     if (!inFence) continue;
-    const match = line.match(new RegExp(String.raw`^\s*(?:[|` + "`" + String.raw`+\-]+\s*)?(${roots}(?:/[A-Za-z0-9._/-]*)?/?)\s{2,}`));
+    const match = line.match(
+      new RegExp(String.raw`^\s*(?:[|` + "`" + String.raw`+\-]+\s*)?(${roots}(?:/[A-Za-z0-9._/-]*)?/?)\s{2,}`)
+    );
     if (match) refs.add(match[1]);
   }
 
   return Array.from(refs).filter((ref) => !ref.includes("*") && !ref.includes("<") && !ref.includes(">"));
 }
 
-async function pluginHooksIssues(root: string, manifestPath: string, hooks: z.infer<typeof pluginManifestSchema>["hooks"] | undefined, options: LintOptions): Promise<Issue[]> {
-  if (!hooks) return [];
-  const issues: Issue[] = [hooksFeatureFlagIssue(manifestPath)];
-  if (typeof hooks === "string") {
-    issues.push(...(await optionalManifestPath(root, manifestPath, hooks, "plugin.hooks", options)));
-    issues.push(...(await parseJsonFile(path.resolve(root, hooks), "plugin.hooks.invalid")));
-  } else if (Array.isArray(hooks) && hooks.every((hook) => typeof hook === "string")) {
-    for (const hook of hooks as string[]) {
-      issues.push(...(await optionalManifestPath(root, manifestPath, hook, "plugin.hooks", options)));
-      issues.push(...(await parseJsonFile(path.resolve(root, hook), "plugin.hooks.invalid")));
+async function appManifestIssues(
+  root: string,
+  manifestPath: string,
+  ref: string | undefined,
+  options: LintOptions
+): Promise<Issue[]> {
+  if (!ref) return [];
+  if (normalizeContractPath(ref) !== ".app.json") {
+    return [
+      {
+        level: "error",
+        impact: "blocking",
+        code: "plugin.apps.contract-path",
+        message: "Plugin apps must resolve to .app.json.",
+        file: manifestPath
+      }
+    ];
+  }
+  const issues = await contractPathIssues(root, manifestPath, ref, "plugin.apps", options);
+  const full = path.resolve(root, ref);
+  if (!(await fs.pathExists(full))) return issues;
+  const raw = await readJsonSafe(full);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
+    issues.push({
+      level: "error",
+      impact: "blocking",
+      code: "plugin.apps.invalid",
+      message: ".app.json must contain a JSON object.",
+      file: full
+    });
+    return issues;
+  }
+  const payload = raw as Record<string, unknown>;
+  const unknownRootFields = Object.keys(payload).filter((key) => key !== "apps");
+  if (unknownRootFields.length > 0) {
+    issues.push({
+      level: "error",
+      impact: "blocking",
+      code: "plugin.apps.unknown-field",
+      message: `.app.json contains unsupported fields: ${unknownRootFields.join(", ")}`,
+      file: full
+    });
+  }
+  if (!payload.apps || typeof payload.apps !== "object" || Array.isArray(payload.apps)) {
+    issues.push({
+      level: "error",
+      impact: "blocking",
+      code: "plugin.apps.invalid",
+      message: ".app.json must contain an apps object.",
+      file: full
+    });
+    return issues;
+  }
+  for (const [appName, app] of Object.entries(payload.apps as Record<string, unknown>)) {
+    if (!app || typeof app !== "object" || Array.isArray(app)) {
+      issues.push({
+        level: "error",
+        impact: "blocking",
+        code: "plugin.apps.entry-shape",
+        message: `App "${appName}" must be an object.`,
+        file: full
+      });
+      continue;
+    }
+    const record = app as Record<string, unknown>;
+    const unknownFields = Object.keys(record).filter((key) => key !== "id" && key !== "category");
+    if (unknownFields.length > 0) {
+      issues.push({
+        level: "error",
+        impact: "blocking",
+        code: "plugin.apps.entry-unknown-field",
+        message: `App "${appName}" contains unsupported fields: ${unknownFields.join(", ")}`,
+        file: full
+      });
+    }
+    if (typeof record.id !== "string" || !record.id.trim()) {
+      issues.push({
+        level: "error",
+        impact: "blocking",
+        code: "plugin.apps.id-missing",
+        message: `App "${appName}" must define a non-empty id.`,
+        file: full
+      });
+    }
+    if (record.category !== undefined && (typeof record.category !== "string" || !record.category.trim())) {
+      issues.push({
+        level: "error",
+        impact: "blocking",
+        code: "plugin.apps.category-invalid",
+        message: `App "${appName}" category must be a non-empty string when present.`,
+        file: full
+      });
     }
   }
   return issues;
 }
 
-function hooksFeatureFlagIssue(file: string): Issue {
-  return { level: "warning", impact: "advisory", code: "plugin.hooks.feature-flag", message: "Hooks require Codex hook support; document the codex_hooks feature flag for users.", file };
-}
-
-async function optionalManifestPath(root: string, manifestPath: string, ref: string | undefined, code: string, options: LintOptions): Promise<Issue[]> {
-  return ref ? pluginPathIssues(root, manifestPath, ref, code, options) : [];
-}
-
-async function mcpServersIssues(root: string, manifestPath: string, ref: string | undefined, options: LintOptions): Promise<Issue[]> {
+async function mcpServersIssues(
+  root: string,
+  manifestPath: string,
+  ref: PluginManifest["mcpServers"] | undefined,
+  options: LintOptions
+): Promise<Issue[]> {
   if (!ref) return [];
-  const issues = await pluginPathIssues(root, manifestPath, ref, "plugin.mcpServers", options);
+  if (typeof ref !== "string") {
+    return validateMcpServerRecords(ref, manifestPath, root, options);
+  }
+  if (normalizeContractPath(ref) !== ".mcp.json") {
+    return [
+      {
+        level: "error",
+        impact: "blocking",
+        code: "plugin.mcpServers.contract-path",
+        message: "String-valued mcpServers must resolve to .mcp.json.",
+        file: manifestPath
+      }
+    ];
+  }
+  const issues = await contractPathIssues(root, manifestPath, ref, "plugin.mcpServers", options);
   const full = path.resolve(root, ref);
   if (!(await fs.pathExists(full))) return issues;
 
@@ -631,10 +789,13 @@ async function mcpServersIssues(root: string, manifestPath: string, ref: string 
   try {
     raw = JSON.parse(await fs.readFile(full, "utf8"));
   } catch (error) {
-    return [...issues, { level: "error", impact: "blocking", code: "plugin.mcpServers.invalid", message: String(error), file: full }];
+    return [
+      ...issues,
+      { level: "error", impact: "blocking", code: "plugin.mcpServers.invalid", message: String(error), file: full }
+    ];
   }
 
-  const servers = mcpServerRecords(raw);
+  const servers = mcpServerRecords(raw, true);
   if (!servers) {
     return [
       ...issues,
@@ -648,52 +809,143 @@ async function mcpServersIssues(root: string, manifestPath: string, ref: string 
     ];
   }
 
+  issues.push(...(await validateMcpServerRecords(servers, full, root, options)));
+  return issues;
+}
+
+async function validateMcpServerRecords(
+  servers: Record<string, unknown>,
+  file: string,
+  root: string,
+  options: LintOptions
+): Promise<Issue[]> {
+  const issues: Issue[] = [];
   for (const [serverName, server] of Object.entries(servers)) {
     if (!server || typeof server !== "object" || Array.isArray(server)) {
-      issues.push({ level: "error", impact: "blocking", code: "plugin.mcpServers.server-shape", message: `MCP server "${serverName}" must be an object.`, file: full });
+      issues.push({
+        level: "error",
+        impact: "blocking",
+        code: "plugin.mcpServers.server-shape",
+        message: `MCP server "${serverName}" must be an object.`,
+        file
+      });
       continue;
     }
     const record = server as Record<string, unknown>;
     const hasUrl = typeof record.url === "string";
     const command = record.command;
     if (!hasUrl && typeof command !== "string") {
-      issues.push({ level: "error", impact: "blocking", code: "plugin.mcpServers.command-missing", message: `MCP server "${serverName}" should define a url or command.`, file: full });
+      issues.push({
+        level: "error",
+        impact: "blocking",
+        code: "plugin.mcpServers.command-missing",
+        message: `MCP server "${serverName}" should define a url or command.`,
+        file
+      });
     }
     if (typeof command === "string" && command.startsWith("./")) {
-      issues.push(...(await pluginPathIssues(root, full, command, "plugin.mcpServers.command", options)));
+      issues.push(...(await pluginPathIssues(root, file, command, "plugin.mcpServers.command", options)));
     }
     const args = record.args;
     if (args !== undefined && (!Array.isArray(args) || !args.every((arg) => typeof arg === "string"))) {
-      issues.push({ level: "error", impact: "blocking", code: "plugin.mcpServers.args-shape", message: `MCP server "${serverName}" args must be an array of strings.`, file: full });
+      issues.push({
+        level: "error",
+        impact: "blocking",
+        code: "plugin.mcpServers.args-shape",
+        message: `MCP server "${serverName}" args must be an array of strings.`,
+        file
+      });
     }
     if (typeof record.cwd === "string" && record.cwd.startsWith("./")) {
-      issues.push(...(await pluginPathIssues(root, full, record.cwd, "plugin.mcpServers.cwd", options)));
+      issues.push(...(await pluginPathIssues(root, file, record.cwd, "plugin.mcpServers.cwd", options)));
     }
   }
 
   return issues;
 }
 
-function mcpServerRecords(raw: unknown): Record<string, unknown> | null {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
-  const record = raw as Record<string, unknown>;
-  const candidate = record.mcpServers && typeof record.mcpServers === "object" && !Array.isArray(record.mcpServers) ? record.mcpServers : record;
-  return candidate && typeof candidate === "object" && !Array.isArray(candidate) ? (candidate as Record<string, unknown>) : null;
+async function contractPathIssues(
+  root: string,
+  manifestPath: string,
+  ref: string,
+  code: string,
+  options: LintOptions
+): Promise<Issue[]> {
+  const normalized = normalizeContractPath(ref);
+  if (normalized === null) {
+    return [
+      {
+        level: "error",
+        impact: "blocking",
+        code: `${code}.outside-root`,
+        message: `Manifest path must stay inside the plugin root: ${ref}`,
+        file: manifestPath
+      }
+    ];
+  }
+  return pluginPathIssues(root, manifestPath, ref.startsWith("./") ? ref : `./${ref}`, code, options);
 }
 
-async function pluginPathIssues(root: string, manifestPath: string, ref: string, code: string, options: LintOptions): Promise<Issue[]> {
+function mcpServerRecords(raw: unknown, requireWrapper = false): Record<string, unknown> | null {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const record = raw as Record<string, unknown>;
+  if (requireWrapper && Object.keys(record).some((key) => key !== "mcpServers")) return null;
+  const candidate = record.mcpServers;
+  return candidate && typeof candidate === "object" && !Array.isArray(candidate)
+    ? (candidate as Record<string, unknown>)
+    : null;
+}
+
+function containsTodoPlaceholder(value: unknown): boolean {
+  if (typeof value === "string") return value.includes("[TODO:");
+  if (Array.isArray(value)) return value.some(containsTodoPlaceholder);
+  if (value && typeof value === "object") return Object.values(value).some(containsTodoPlaceholder);
+  return false;
+}
+
+async function pluginPathIssues(
+  root: string,
+  manifestPath: string,
+  ref: string,
+  code: string,
+  options: LintOptions
+): Promise<Issue[]> {
   const issues: Issue[] = [];
   if (!ref.startsWith("./")) {
-    issues.push({ level: "error", impact: "blocking", code: `${code}.relative`, message: `Manifest path must start with ./ and be relative to the plugin root: ${ref}`, file: manifestPath });
+    issues.push({
+      level: "error",
+      impact: "blocking",
+      code: `${code}.relative`,
+      message: `Manifest path must start with ./ and be relative to the plugin root: ${ref}`,
+      file: manifestPath
+    });
   }
   const full = path.resolve(root, ref);
   if (!isInside(root, full)) {
-    issues.push({ level: "error", impact: "blocking", code: `${code}.outside-root`, message: `Manifest path must stay inside the plugin root: ${ref}`, file: manifestPath });
+    issues.push({
+      level: "error",
+      impact: "blocking",
+      code: `${code}.outside-root`,
+      message: `Manifest path must stay inside the plugin root: ${ref}`,
+      file: manifestPath
+    });
   } else if (!(await fs.pathExists(full))) {
     if (options.profile === "source" && (await canBeBuilt(root, ref))) {
-      issues.push({ level: "warning", impact: "advisory", code: `${code}.build-missing`, message: `Manifest path does not exist yet but looks build-generated: ${ref}`, file: manifestPath });
+      issues.push({
+        level: "warning",
+        impact: "advisory",
+        code: `${code}.build-missing`,
+        message: `Manifest path does not exist yet but looks build-generated: ${ref}`,
+        file: manifestPath
+      });
     } else {
-      issues.push({ level: "error", impact: "blocking", code: `${code}.missing`, message: `Manifest path does not exist: ${ref}`, file: manifestPath });
+      issues.push({
+        level: "error",
+        impact: "blocking",
+        code: `${code}.missing`,
+        message: `Manifest path does not exist: ${ref}`,
+        file: manifestPath
+      });
     }
   }
   return issues;
@@ -712,13 +964,14 @@ async function canBeBuilt(root: string, ref: string): Promise<boolean> {
   }
 }
 
-function toManifestPath(value: string): string {
-  const normalized = value.replaceAll("\\", "/");
-  return normalized.startsWith("./") ? normalized : `./${normalized}`;
-}
-
-function normalizeManifestRef(value: string): string {
-  return toManifestPath(value).replace(/\/+$/, (match) => (match ? "/" : ""));
+function normalizeContractPath(value: string): string | null {
+  if (path.isAbsolute(value)) return null;
+  const normalized = path.posix
+    .normalize(value.replaceAll("\\", "/"))
+    .replace(/^\.\/+/, "")
+    .replace(/\/+$/, "");
+  if (!normalized || normalized === ".." || normalized.startsWith("../")) return null;
+  return normalized;
 }
 
 async function ancestorDirs(root: string): Promise<string[]> {
@@ -747,18 +1000,13 @@ function samePath(a: string, b: string): boolean {
 
 function sameUrl(a: string, b: string | undefined): boolean {
   if (!b) return false;
-  const normalize = (value: string) => value.replace(/^git\+/, "").replace(/\.git$/, "").replace(/\/$/, "").toLowerCase();
+  const normalize = (value: string) =>
+    value
+      .replace(/^git\+/, "")
+      .replace(/\.git$/, "")
+      .replace(/\/$/, "")
+      .toLowerCase();
   return normalize(a) === normalize(b);
-}
-
-async function parseJsonFile(file: string, code: string): Promise<Issue[]> {
-  if (!(await fs.pathExists(file))) return [];
-  try {
-    JSON.parse(await fs.readFile(file, "utf8"));
-    return [];
-  } catch (error) {
-    return [{ level: "error", impact: "blocking", code, message: String(error), file }];
-  }
 }
 
 function isInside(root: string, candidate: string): boolean {

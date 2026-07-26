@@ -3,7 +3,7 @@ name: "__SKILLFORGE_NAME__"
 description: "Use this skill when Codex needs to perform __SKILLFORGE_TITLE__ workflows with repeatable guidance, validation steps, and concise task-specific instructions."
 ---
 
-# __SKILLFORGE_TITLE__
+# **SKILLFORGE_TITLE**
 
 ## Workflow
 

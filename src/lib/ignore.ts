@@ -25,7 +25,9 @@ function matchesPattern(relative: string, rawPattern: string): boolean {
 }
 
 function normalizePattern(pattern: string): string {
-  return toPosix(pattern).replace(/^\.\/+/, "").replace(/\/+$/, "");
+  return toPosix(pattern)
+    .replace(/^\.\/+/, "")
+    .replace(/\/+$/, "");
 }
 
 function toPosix(value: string): string {

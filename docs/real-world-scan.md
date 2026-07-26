@@ -1,6 +1,6 @@
 # Real-World Scan Notes
 
-On 2026-05-10, SkillForge was run against the mirrored plugin bundles in `hashgraph-online/awesome-codex-plugins`.
+Historical note: on 2026-05-10, SkillForge was run against the mirrored plugin bundles in `hashgraph-online/awesome-codex-plugins`.
 
 This was a product-quality pass, not a public scorecard. The goal was to find noisy rules, false positives, and common publish-readiness issues across real Codex plugin repositories.
 
@@ -49,3 +49,5 @@ The initial scan showed that some checks were too noisy for default CI usage. In
 These findings are lint signals, not proof that a plugin is broken or unsafe. Public mirrors can lag behind source repositories, and some projects intentionally reference files generated at runtime.
 
 Use the report as a way to improve rules and catch common packaging mistakes, not as a ranking of plugin quality.
+
+The hook and `include` findings describe the contract used during that historical scan. They are not current rules; modern validation rejects unsupported manifest fields and packages conventional runtime resources directly.

@@ -1,10 +1,17 @@
 {
   "name": "plugin-missing-include",
   "version": "1.0.0",
-  "description": "A plugin fixture whose skill references plugin-level resources without packaging them.",
+  "description": "A plugin fixture with the obsolete include manifest field.",
+  "author": { "name": "SkillForge tests" },
   "skills": "./skills/",
+  "include": ["./references/"],
   "interface": {
-    "displayName": "Plugin Missing Include",
-    "category": "Development & Workflow"
+    "displayName": "Plugin Unsupported Include",
+    "shortDescription": "Tests obsolete include rejection.",
+    "longDescription": "A current-contract fixture except for its intentionally unsupported include field.",
+    "developerName": "SkillForge tests",
+    "category": "Development & Workflow",
+    "capabilities": ["Workflow"],
+    "defaultPrompt": ["Use Plugin Unsupported Include for this workflow."]
   }
 }

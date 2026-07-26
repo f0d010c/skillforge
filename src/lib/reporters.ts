@@ -30,7 +30,9 @@ function toText(result: LintResult): string {
   const blockers = result.issues.filter((issue) => issue.impact === "blocking").length;
   const advisories = result.issues.filter((issue) => issue.impact === "advisory").length;
   const summary = blockers || advisories ? ` (${blockers} blocking, ${advisories} advisory)` : "";
-  const lines = [`SkillForge ${result.kind} lint found ${result.issues.length} issue(s)${summary}${checked}${profile}:`];
+  const lines = [
+    `SkillForge ${result.kind} lint found ${result.issues.length} issue(s)${summary}${checked}${profile}:`
+  ];
   for (const issue of result.issues) {
     const location = issue.file ? ` ${issue.file}` : "";
     const impact = issue.impact ? ` ${issue.impact}` : "";

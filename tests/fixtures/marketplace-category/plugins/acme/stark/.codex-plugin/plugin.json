@@ -2,9 +2,15 @@
   "name": "stark",
   "version": "1.0.0",
   "description": "A plugin fixture with category drift against local marketplace metadata.",
+  "author": { "name": "SkillForge tests" },
   "skills": "./skills/",
   "interface": {
     "displayName": "Stark",
-    "category": "Developer Tools"
+    "shortDescription": "Tests marketplace category drift.",
+    "longDescription": "A current-contract fixture with intentionally inconsistent marketplace metadata.",
+    "developerName": "SkillForge tests",
+    "category": "Developer Tools",
+    "capabilities": ["Workflow"],
+    "defaultPrompt": ["Use Stark for this workflow."]
   }
 }

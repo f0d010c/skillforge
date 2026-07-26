@@ -2,13 +2,17 @@
   "name": "__SKILLFORGE_NAME__",
   "version": "0.1.0",
   "description": "Codex plugin for __SKILLFORGE_TITLE__ workflows.",
+  "author": {
+    "name": "__SKILLFORGE_AUTHOR__"
+  },
   "interface": {
     "displayName": "__SKILLFORGE_TITLE__",
     "shortDescription": "Reusable Codex workflows for __SKILLFORGE_TITLE__ tasks.",
+    "longDescription": "__SKILLFORGE_TITLE__ provides reusable, validated workflows for Codex.",
+    "developerName": "__SKILLFORGE_AUTHOR__",
     "category": "Productivity",
-    "defaultPrompt": [
-      "Use __SKILLFORGE_TITLE__ to help with this workflow."
-    ]
+    "capabilities": ["Workflow"],
+    "defaultPrompt": ["Use __SKILLFORGE_TITLE__ to help with this workflow."]
   },
   "skills": "./skills/"
 }

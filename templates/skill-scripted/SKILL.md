@@ -3,7 +3,7 @@ name: "__SKILLFORGE_NAME__"
 description: "Use this skill when Codex needs to run or maintain scripted __SKILLFORGE_TITLE__ workflows where deterministic helper scripts improve reliability."
 ---
 
-# __SKILLFORGE_TITLE__
+# **SKILLFORGE_TITLE**
 
 ## Workflow
 

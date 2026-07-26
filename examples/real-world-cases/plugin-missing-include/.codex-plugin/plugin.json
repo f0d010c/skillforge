@@ -1,10 +1,17 @@
 {
   "name": "plugin-missing-include",
   "version": "1.0.0",
-  "description": "A plugin whose bundled skill references plugin-level resources that are not declared in manifest include.",
+  "description": "A plugin that deliberately uses the obsolete include manifest field.",
+  "author": { "name": "SkillForge examples" },
   "skills": "./skills/",
+  "include": ["./references/"],
   "interface": {
-    "displayName": "Plugin Missing Include",
-    "category": "Development & Workflow"
+    "displayName": "Plugin Unsupported Include",
+    "shortDescription": "Demonstrates obsolete include rejection.",
+    "longDescription": "An example plugin that is current except for its unsupported include field.",
+    "developerName": "SkillForge examples",
+    "category": "Development & Workflow",
+    "capabilities": ["Workflow"],
+    "defaultPrompt": ["Use Plugin Unsupported Include for this workflow."]
   }
 }

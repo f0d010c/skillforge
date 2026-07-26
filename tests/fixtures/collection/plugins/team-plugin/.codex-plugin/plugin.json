@@ -2,10 +2,15 @@
   "name": "team-plugin",
   "version": "0.1.0",
   "description": "Valid team plugin fixture.",
+  "author": { "name": "SkillForge tests" },
   "skills": "./skills/",
   "interface": {
     "displayName": "Team Plugin",
     "shortDescription": "Collection plugin fixture.",
-    "category": "Productivity"
+    "longDescription": "A complete team plugin fixture for collection scanning.",
+    "developerName": "SkillForge tests",
+    "category": "Productivity",
+    "capabilities": ["Workflow"],
+    "defaultPrompt": ["Use Team Plugin for this workflow."]
   }
 }

@@ -4,369 +4,201 @@
 [![npm version](https://img.shields.io/npm/v/agent-skillforge.svg)](https://www.npmjs.com/package/agent-skillforge)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**ESLint for agent skills and plugins.**
+Deterministic authoring checks for Codex skills and plugins.
 
-SkillForge helps agent extension authors scaffold, lint, smoke-test, inspect, and package skills/plugins before they publish or submit them to a marketplace.
-
-Codex is the first-class target today. Portable skill compatibility for Claude-style skills and cross-agent packages is now starting with `skillforge compat`.
-
-Listed in [awesome-codex-plugins](https://github.com/hashgraph-online/awesome-codex-plugins) under "Validate Before You Ship."
+SkillForge scaffolds current-contract extensions, validates publish-readiness, checks portability, runs static trigger smoke cases, inspects local Codex setup, and creates bounded deterministic archives.
 
 ```bash
 npx agent-skillforge lint .
 ```
 
-Example output:
+## Why SkillForge
 
-```text
-SkillForge plugin lint found 3 issue(s) (2 blocking, 1 advisory) [source]:
-[ERROR blocking] plugin.skills.missing - Manifest path does not exist: ./skills/
-[WARNING advisory] skill.description.vague - Description should clearly say what the skill does and when Codex should use it.
-[ERROR blocking] metadata.openai-yaml.legacy-shape - agents/openai.yaml fields must live under interface:
-```
+Agent extensions are small but easy to break:
 
-## Why This Exists
+- malformed or stale YAML frontmatter;
+- incomplete plugin interface metadata;
+- unsupported or misspelled manifest fields;
+- missing skill, MCP, app, script, reference, or asset files;
+- archives that omit hidden manifests or include repository-only material;
+- vague trigger metadata and agent-specific portability assumptions.
 
-Agent skills and plugins are small, powerful folders. They are also easy to get subtly wrong:
-
-- weak skill descriptions that Codex will not trigger well
-- stale `agents/openai.yaml` shapes
-- plugin paths that are not `./`-relative
-- missing bundled skills, hooks, MCP, app, or asset files
-- packages that work locally but are not marketplace-ready
-- skills that claim cross-agent compatibility but still contain agent-specific assumptions
-
-SkillForge is not a marketplace. It is the publish-readiness check you run before sharing an agent skill/plugin repo.
-
-## Security Model
-
-SkillForge is a CLI linter, not an agent runtime plugin. Running `lint`, `compat`, `doctor`, and `smoke` reads local files and reports issues; it does not install skills, load plugins into Codex, or execute scripts from the target project.
-
-Commands that write files are explicit:
-
-- `init` creates scaffold files in the destination you choose.
-- `pack` writes release artifacts to an output directory.
-
-For cautious use, pin the npm version, review the source, and start with read-only commands:
-
-```bash
-npx agent-skillforge@0.3.2 lint .
-npx agent-skillforge@0.3.2 compat . --target portable
-```
+SkillForge is a local CLI and GitHub Action. Read-only commands never execute scripts from the inspected project.
 
 ## Install
 
-Run with npm:
+Run without installing:
 
 ```bash
-npx agent-skillforge lint .
+npx agent-skillforge@latest lint .
 ```
 
-Or install it in a project:
+Or pin it as a development dependency:
 
 ```bash
 npm install --save-dev agent-skillforge
 npx skillforge lint .
 ```
 
-After installing, you can use the shorter aliases:
+Available binaries are `agent-skillforge`, `skillforge`, `asf`, and the compatibility aliases `codex-skillforge` and `csf`.
 
-```bash
-skillforge lint .
-asf lint .
-```
-
-The old `codex-skillforge` binary remains available as a compatibility alias.
-
-## GitHub Action
-
-Run SkillForge in CI:
-
-```yaml
-name: SkillForge
-
-on:
-  pull_request:
-  push:
-    branches: [main]
-
-jobs:
-  lint-skills:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-      - uses: f0d010c/skillforge@v0.3.2
-        with:
-          path: .
-          profile: source
-```
-
-For marketplace-ready checks, use:
-
-```yaml
-      - uses: f0d010c/skillforge@v0.3.2
-        with:
-          path: .
-          profile: marketplace
-```
-
-## Demo
-
-See a tiny working example repo:
-
-[f0d010c/codex-skillforge-demo](https://github.com/f0d010c/codex-skillforge-demo)
-
-See real-world scan notes:
-
-[docs/real-world-scan.md](docs/real-world-scan.md)
-
-## Real-World Cases
-
-The `examples/real-world-cases/` folder contains tiny, intentionally flawed examples based on issues found while scanning public Codex plugin bundles:
-
-- `missing-mcp-server-file`: plugin manifest points at `./mcp.json`, but the file is absent.
-- `stale-skill-reference`: `SKILL.md` links to a reference file that no longer exists.
-- `weak-trigger-description`: skill frontmatter is valid YAML, but too vague for reliable triggering.
-- `plugin-missing-include`: bundled skills use plugin-level resources that are not declared in manifest `include`.
-- `plugin-readme-stale-path`: README file trees mention folders missing from the installable bundle.
-- `marketplace-category`: local marketplace metadata and plugin manifest categories drift apart.
-
-Try them:
-
-```bash
-npx agent-skillforge lint examples/real-world-cases/missing-mcp-server-file
-npx agent-skillforge lint examples/real-world-cases/stale-skill-reference
-npx agent-skillforge lint examples/real-world-cases/weak-trigger-description --strict
-npx agent-skillforge lint ./plugins/my-plugin --profile marketplace
-```
-
-## Quick Start
-
-Create and check a new skill:
-
-```bash
-npx agent-skillforge init skill ./my-skill --name my-skill
-npx agent-skillforge lint ./my-skill
-npx agent-skillforge smoke ./my-skill
-npx agent-skillforge pack ./my-skill
-```
-
-Check an existing agent extension repo:
-
-```bash
-npx agent-skillforge lint .
-```
-
-If SkillForge is installed globally or in your project, the same workflow is shorter:
-
-```bash
-skillforge lint .
-skillforge compat . --target portable
-skillforge smoke ./my-skill
-skillforge pack ./my-skill
-```
+Requires Node.js 20 or newer.
 
 ## Commands
 
+### Scaffold
+
 ```bash
 skillforge init skill ./my-skill --name my-skill
-skillforge init plugin ./my-plugin --name my-plugin
-skillforge init plugin ./hook-plugin --name hook-plugin --template hook-package
-
-skillforge lint ./my-skill --format text
-skillforge lint ./my-skill --format json
-skillforge lint ./my-skill --format sarif
-skillforge lint ./my-plugin --profile marketplace
-skillforge lint ./my-skill --strict
-
-skillforge lint .
-skillforge compat . --target portable
-skillforge doctor .
-skillforge smoke ./my-skill
-skillforge pack ./my-plugin
+skillforge init plugin ./my-plugin --name my-plugin --author "My Team"
 ```
 
-`lint .` can inspect a repository-style collection and recursively find skill/plugin folders under paths like `.agents/skills` and `plugins`.
+Generated skills include `SKILL.md`, `agents/openai.yaml`, and a starter static-smoke case. Generated plugins include current required author and interface metadata.
 
-Default lint mode focuses on deterministic publish-readiness problems. Use `--strict` to include advisory checks such as trigger-description quality, large skill bodies, unreferenced scripts, and plugin name/folder mismatch.
+The legacy `hook-package` template keeps hook files outside `plugin.json`; current plugin validation rejects the unsupported top-level `hooks` field.
 
-## Configuration
+### Lint
 
-Add `skillforge.json` at the repo or package root to tune checks:
+```bash
+skillforge lint ./my-skill
+skillforge lint ./my-plugin --strict
+skillforge lint ./my-plugin --profile marketplace
+skillforge lint . --format json
+skillforge lint . --format sarif
+```
+
+- `source` permits known build-generated MCP paths as advisories.
+- `marketplace` requires referenced runtime files to exist.
+- `--strict` adds subjective and maintainability advisories.
+- Repository collections are discovered recursively and can use path ignores.
+
+The current contract rejects unsupported manifest fields such as `include` and `hooks`. Plugin resources are packaged from conventional runtime directories, declared package files, and local references discovered from skill Markdown.
+
+### Static smoke
+
+```bash
+skillforge smoke ./my-plugin
+```
+
+Static smoke is a deterministic lexical trigger heuristic, not an actual model evaluation. Examples may identify the expected routed skill:
 
 ```json
 {
-  "name": "my-agent-skill-pack",
-  "lint": {
-    "ignore": [
-      "templates/**",
-      "tests/fixtures/**",
-      "examples/broken-on-purpose/**"
-    ]
-  },
+  "examples": [
+    {
+      "prompt": "Build an Android interface with Jetpack Compose.",
+      "shouldTrigger": true,
+      "expectedSkill": "android-design"
+    },
+    {
+      "prompt": "Optimize this SQL query.",
+      "shouldTrigger": false
+    }
+  ]
+}
+```
+
+Use real fresh-agent evaluations when routing quality matters beyond a fast regression check.
+
+### Compatibility
+
+```bash
+skillforge compat ./my-skill --target codex
+skillforge compat ./my-skill --target claude
+skillforge compat ./my-skill --target portable
+```
+
+Compatibility checks shared skill basics, agent-specific wording and paths, and obvious script portability gaps. Run it on a skill or a collection containing skills, not on an unrelated CLI repository.
+
+### Doctor
+
+```bash
+skillforge doctor .
+```
+
+Doctor inspects the target, `$CODEX_HOME`, `$CODEX_HOME/skills`, the plugin cache, optional legacy `.agents/skills`, and personal or repository marketplace locations.
+
+### Package
+
+```bash
+skillforge pack ./my-plugin
+skillforge pack ./my-skill --out-dir ./artifacts
+```
+
+Packaging:
+
+- refuses lint failures unless `--skip-lint` is explicit;
+- requires exactly one skill or plugin root;
+- includes `.codex-plugin/plugin.json` and other hidden contract files;
+- uses an explicit runtime allowlist plus resolved local references;
+- excludes Git data, tests, evals, caches, editor files, secrets, and temporary output;
+- writes sorted entries with stable timestamps;
+- verifies that the required manifest is present.
+
+Plugin packaging also writes an install note and a personal-marketplace entry.
+
+## Configuration
+
+```json
+{
+  "name": "my-agent-extension",
+  "type": "plugin",
+  "examples": [],
   "checks": {
     "maxSkillMdLines": 500,
     "requireOpenAiYaml": false,
     "allowScripts": true
+  },
+  "lint": {
+    "ignore": ["templates/**", "tests/fixtures/**"],
+    "allowEmptyCollection": false
   }
 }
 ```
 
-Use `lint.ignore` for intentional fixtures, vendored examples, generated output, or template folders that should not be treated as publishable skills/plugins.
-
-## Compatibility
-
-Use `compat` to check whether a skill/package is likely to work in a specific agent ecosystem.
-
-```bash
-skillforge compat . --target codex
-skillforge compat . --target claude
-skillforge compat . --target portable
-```
-
-`codex` runs Codex-oriented lint checks.
-
-`claude` checks the shared `SKILL.md` basics expected by Claude-style skills.
-
-`portable` combines both and adds warnings for agent-specific wording, `.claude/`, `.codex/`, `.agents/`, and obvious OS-specific script assumptions.
-
-This is an analysis command, not an auto-converter.
-
-## Profiles
-
-Use profiles to match where the plugin is being checked:
-
-```bash
-skillforge lint . --profile source
-skillforge lint . --profile marketplace
-```
-
-`source` is the default. It is friendlier for repository work and treats obvious build-generated paths such as `./dist/server.js` as advisories when a `package.json` build script exists.
-
-`marketplace` is stricter. It treats every manifest path as something that must already be bundled, which is what users and install tooling need after publishing.
-
-Issue output uses deterministic impact labels:
-
-- `blocking`: likely to break install, discovery, packaging, or runtime setup.
-- `advisory`: worth fixing, but not necessarily a publish blocker.
+Unknown configuration keys are errors so misspelled checks cannot silently disappear.
 
 ## GitHub Action
 
-Use SkillForge in CI:
+After 0.4.0 is released, pin that release:
 
 ```yaml
 name: SkillForge
 
 on:
   pull_request:
-  push:
-    branches: [main]
+
+permissions:
+  contents: read
 
 jobs:
-  lint-agent-extensions:
+  lint:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: f0d010c/skillforge@main
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: f0d010c/skillforge@v0.4.0
         with:
           path: .
-          format: sarif
           profile: marketplace
+          format: text
 ```
 
-## Config
+Do not use `@main` in production workflows.
 
-Add `skillforge.json` to a skill or plugin root:
-
-```json
-{
-  "name": "my-codex-skill",
-  "type": "skill",
-  "examples": [
-    {
-      "prompt": "Use $my-codex-skill to review a React UI for visual issues.",
-      "shouldTrigger": true
-    }
-  ],
-  "checks": {
-    "maxSkillMdLines": 500,
-    "requireOpenAiYaml": false,
-    "allowScripts": true
-  }
-}
-```
-
-## What It Checks
-
-Skill checks:
-
-- `SKILL.md` frontmatter has `name` and `description`.
-- skill names are lowercase hyphen-case and under 64 characters.
-- explicit Markdown links and known resource references resolve.
-- optional `agents/openai.yaml` uses the current nested `interface`, `policy`, and `dependencies` shape.
-- strict mode: descriptions are concise, trigger-oriented, and front-loaded.
-- strict mode: scripts are mentioned in `SKILL.md`.
-
-Plugin checks:
-
-- `.codex-plugin/plugin.json` exists and parses.
-- plugin names are lowercase hyphen-case and match the folder.
-- published metadata has useful `version` and `description`.
-- `skills`, `mcpServers`, `apps`, `hooks`, and visual asset paths resolve.
-- manifest file paths are `./`-relative and stay inside the plugin root.
-- MCP server config parses and each server defines a `url` or `command`.
-- MCP server `args` are arrays of strings.
-- source profile downgrades missing build-generated command paths when a build script exists.
-- bundled skills are linted too.
-- default `hooks/hooks.json` is detected and parsed.
-- hook packages warn about the required `codex_hooks` feature flag.
-- strict mode: plugin folder/name mismatch is reported.
-
-## Install Targets
-
-Codex reads local skills from repo and user locations such as:
-
-```text
-./.agents/skills/<skill-name>
-$HOME/.agents/skills/<skill-name>
-```
-
-Plugins are distributed through marketplace files such as:
-
-```text
-./.agents/plugins/marketplace.json
-$HOME/.agents/plugins/marketplace.json
-```
-
-`skillforge pack` writes:
-
-- `<name>.zip`
-- `INSTALL.md`
-- `marketplace-entry.json`
-
-## Exit Codes
-
-- `0`: pass, or warnings only
-- `1`: lint errors or failed smoke checks
-- `2`: invalid CLI usage or unreadable input
-
-## Release Checklist
-
-Before publishing:
+## Development
 
 ```bash
-npm run build
-npm test
+npm ci
+npm run check
+npm run coverage
 npm audit
 npm pack --dry-run
 ```
 
-Verify from a clean directory after npm publish:
+The test suite covers lint contracts, scaffolding, current YAML parsing, smoke routing, doctor paths, deterministic archives, and required archive contents across Node 20, 22, and 24 on Linux plus Node 24 on Windows and macOS.
 
-```bash
-mkdir skillforge-smoke
-cd skillforge-smoke
-npx agent-skillforge --version
-npx agent-skillforge init skill ./demo-skill --name demo-skill
-npx agent-skillforge lint ./demo-skill
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md), [SECURITY.md](SECURITY.md), and [CHANGELOG.md](CHANGELOG.md).
+
+## License
+
+MIT.

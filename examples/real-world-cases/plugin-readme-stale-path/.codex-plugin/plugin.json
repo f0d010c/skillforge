@@ -2,9 +2,15 @@
   "name": "plugin-readme-stale-path",
   "version": "1.0.0",
   "description": "A plugin whose README documents folders that are absent from the installable bundle.",
+  "author": { "name": "SkillForge examples" },
   "skills": "./skills/",
   "interface": {
     "displayName": "Plugin README Stale Path",
-    "category": "Development & Workflow"
+    "shortDescription": "Demonstrates stale README paths.",
+    "longDescription": "An example plugin whose README deliberately references absent paths.",
+    "developerName": "SkillForge examples",
+    "category": "Development & Workflow",
+    "capabilities": ["Workflow"],
+    "defaultPrompt": ["Use Plugin README Stale Path for this workflow."]
   }
 }

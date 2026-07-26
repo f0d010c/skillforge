@@ -15,7 +15,11 @@ interface CompatResult {
   issues: Issue[];
 }
 
-export async function compatCommand(targetPath: string, target: CompatTarget, format: CompatFormat): Promise<{ output: string; exitCode: number }> {
+export async function compatCommand(
+  targetPath: string,
+  target: CompatTarget,
+  format: CompatFormat
+): Promise<{ output: string; exitCode: number }> {
   const absolute = path.resolve(targetPath);
   const result = await compatPath(absolute, target);
   return {
@@ -54,21 +58,47 @@ async function claudeCompatIssues(root: string): Promise<Issue[]> {
   const issues: Issue[] = [];
   const skillFiles = await findSkillFiles(root);
   if (skillFiles.length === 0) {
-    return [compatIssue("error", "blocking", "claude.skill.missing", "No SKILL.md file found for Claude-style skill compatibility.", root)];
+    return [
+      compatIssue(
+        "error",
+        "blocking",
+        "claude.skill.missing",
+        "No SKILL.md file found for Claude-style skill compatibility.",
+        root
+      )
+    ];
   }
 
   for (const file of skillFiles) {
     const content = await fs.readFile(file, "utf8");
     const frontmatter = parseMarkdownFrontmatter(content);
     if (!frontmatter) {
-      issues.push(compatIssue("error", "blocking", "claude.frontmatter.missing", "SKILL.md should start with YAML frontmatter.", file));
+      issues.push(
+        compatIssue(
+          "error",
+          "blocking",
+          "claude.frontmatter.missing",
+          "SKILL.md should start with YAML frontmatter.",
+          file
+        )
+      );
       continue;
     }
     if (typeof frontmatter.data.name !== "string" || frontmatter.data.name.trim() === "") {
-      issues.push(compatIssue("error", "blocking", "claude.name.missing", "SKILL.md frontmatter should include a name.", file));
+      issues.push(
+        compatIssue("error", "blocking", "claude.name.missing", "SKILL.md frontmatter should include a name.", file)
+      );
     }
     if (typeof frontmatter.data.description !== "string" || frontmatter.data.description.trim() === "") {
-      issues.push(compatIssue("error", "blocking", "claude.description.missing", "SKILL.md frontmatter should include a description.", file));
+      issues.push(
+        compatIssue(
+          "error",
+          "blocking",
+          "claude.description.missing",
+          "SKILL.md frontmatter should include a description.",
+          file
+        )
+      );
     }
   }
 
@@ -81,16 +111,48 @@ async function portabilityIssues(root: string): Promise<Issue[]> {
   for (const file of skillFiles) {
     const content = await fs.readFile(file, "utf8");
     if (/\bClaude Code\b/i.test(content)) {
-      issues.push(compatIssue("warning", "advisory", "portable.wording.claude", "SKILL.md mentions Claude Code directly; consider agent-neutral wording for portable skills.", file));
+      issues.push(
+        compatIssue(
+          "warning",
+          "advisory",
+          "portable.wording.claude",
+          "SKILL.md mentions Claude Code directly; consider agent-neutral wording for portable skills.",
+          file
+        )
+      );
     }
     if (/\bCodex\b/i.test(content)) {
-      issues.push(compatIssue("warning", "advisory", "portable.wording.codex", "SKILL.md mentions Codex directly; consider agent-neutral wording for portable skills.", file));
+      issues.push(
+        compatIssue(
+          "warning",
+          "advisory",
+          "portable.wording.codex",
+          "SKILL.md mentions Codex directly; consider agent-neutral wording for portable skills.",
+          file
+        )
+      );
     }
     if (/\.claude\//i.test(content)) {
-      issues.push(compatIssue("warning", "advisory", "portable.path.claude", "SKILL.md references .claude paths, which may not exist in other agents.", file));
+      issues.push(
+        compatIssue(
+          "warning",
+          "advisory",
+          "portable.path.claude",
+          "SKILL.md references .claude paths, which may not exist in other agents.",
+          file
+        )
+      );
     }
     if (/\.codex\//i.test(content) || /\.agents\//i.test(content)) {
-      issues.push(compatIssue("warning", "advisory", "portable.path.codex", "SKILL.md references Codex-style paths, which may not exist in other agents.", file));
+      issues.push(
+        compatIssue(
+          "warning",
+          "advisory",
+          "portable.path.codex",
+          "SKILL.md references Codex-style paths, which may not exist in other agents.",
+          file
+        )
+      );
     }
   }
 
@@ -104,11 +166,34 @@ async function scriptPortabilityIssues(root: string): Promise<Issue[]> {
   const entries = await fs.readdir(scriptsDir);
   const extensions = new Set(entries.map((entry) => path.extname(entry).toLowerCase()).filter(Boolean));
   const issues: Issue[] = [];
-  if (extensions.has(".sh") && !extensions.has(".ps1") && !extensions.has(".cmd") && !extensions.has(".bat") && !extensions.has(".js") && !extensions.has(".py")) {
-    issues.push(compatIssue("warning", "advisory", "portable.scripts.unix-only", "scripts/ contains shell scripts without an obvious Windows-friendly alternative.", scriptsDir));
+  if (
+    extensions.has(".sh") &&
+    !extensions.has(".ps1") &&
+    !extensions.has(".cmd") &&
+    !extensions.has(".bat") &&
+    !extensions.has(".js") &&
+    !extensions.has(".py")
+  ) {
+    issues.push(
+      compatIssue(
+        "warning",
+        "advisory",
+        "portable.scripts.unix-only",
+        "scripts/ contains shell scripts without an obvious Windows-friendly alternative.",
+        scriptsDir
+      )
+    );
   }
   if (extensions.has(".ps1") && !extensions.has(".sh") && !extensions.has(".js") && !extensions.has(".py")) {
-    issues.push(compatIssue("warning", "advisory", "portable.scripts.windows-only", "scripts/ contains PowerShell scripts without an obvious macOS/Linux-friendly alternative.", scriptsDir));
+    issues.push(
+      compatIssue(
+        "warning",
+        "advisory",
+        "portable.scripts.windows-only",
+        "scripts/ contains PowerShell scripts without an obvious macOS/Linux-friendly alternative.",
+        scriptsDir
+      )
+    );
   }
   return issues;
 }
@@ -145,7 +230,9 @@ function formatCompatText(result: CompatResult): string {
   }
   const blockers = result.issues.filter((issue) => issue.impact === "blocking").length;
   const advisories = result.issues.filter((issue) => issue.impact === "advisory").length;
-  const lines = [`SkillForge compat found ${result.issues.length} issue(s) (${blockers} blocking, ${advisories} advisory) [${result.target}]:`];
+  const lines = [
+    `SkillForge compat found ${result.issues.length} issue(s) (${blockers} blocking, ${advisories} advisory) [${result.target}]:`
+  ];
   for (const issue of result.issues) {
     const impact = issue.impact ? ` ${issue.impact}` : "";
     const location = issue.file ? ` ${issue.file}` : "";

@@ -6,6 +6,7 @@ export type InitKind = "skill" | "plugin";
 
 interface InitOptions {
   name?: string;
+  author?: string;
   template?: string;
   force?: boolean;
 }
@@ -30,8 +31,9 @@ export async function initCommand(kind: InitKind, outputPath: string, options: I
   await fs.ensureDir(destination);
   await fs.copy(source, destination, { overwrite: Boolean(options.force), errorOnExist: !options.force });
   await replaceTokens(destination, {
-    "__SKILLFORGE_NAME__": name,
-    "__SKILLFORGE_TITLE__": titleCase(name)
+    __SKILLFORGE_NAME__: name,
+    __SKILLFORGE_TITLE__: titleCase(name),
+    __SKILLFORGE_AUTHOR__: options.author?.trim() || "Plugin author"
   });
 
   return `Created ${kind} "${name}" at ${destination}`;

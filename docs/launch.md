@@ -8,7 +8,7 @@ SkillForge is ESLint for agent skills and plugins: scaffold, lint, smoke-test, c
 
 I built a small OSS CLI for people making agent skills/plugins.
 
-Agent extensions are easy to package incorrectly: vague `SKILL.md` triggers, broken `./skills/` paths, stale metadata, missing hook files, marketplace metadata drift, and cross-agent assumptions.
+Agent extensions are easy to package incorrectly: vague `SKILL.md` triggers, stale manifests, incomplete interface metadata, missing MCP or asset files, marketplace metadata drift, unsafe archives, and cross-agent assumptions.
 
 SkillForge gives authors a quick publish-readiness check:
 
@@ -16,7 +16,7 @@ SkillForge gives authors a quick publish-readiness check:
 npx agent-skillforge lint .
 ```
 
-It also scaffolds skills/plugins, smoke-tests declared example prompts, checks Codex/Claude/portable compatibility, and packs release artifacts with install notes.
+It also scaffolds skills/plugins, runs deterministic static trigger checks, checks Codex/Claude/portable compatibility, and creates bounded deterministic archives with install notes.
 
 Repo: https://github.com/f0d010c/skillforge
 
