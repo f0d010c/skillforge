@@ -2,6 +2,16 @@
   "name": "invalid-mcp-plugin",
   "version": "1.0.0",
   "description": "A plugin fixture with an invalid MCP server shape.",
+  "author": { "name": "SkillForge tests" },
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json"
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Invalid MCP Plugin",
+    "shortDescription": "Tests invalid MCP server entries.",
+    "longDescription": "A current-contract plugin fixture with invalid MCP server configuration.",
+    "developerName": "SkillForge tests",
+    "category": "Development & Workflow",
+    "capabilities": ["MCP"],
+    "defaultPrompt": ["Use Invalid MCP Plugin for this workflow."]
+  }
 }

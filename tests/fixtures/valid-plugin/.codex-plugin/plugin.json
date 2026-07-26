@@ -2,10 +2,15 @@
   "name": "valid-plugin",
   "version": "0.1.0",
   "description": "Valid plugin fixture.",
+  "author": { "name": "SkillForge tests" },
   "interface": {
     "displayName": "Valid Plugin",
     "shortDescription": "A valid plugin fixture.",
-    "category": "Productivity"
+    "longDescription": "A complete plugin fixture for current contract validation.",
+    "developerName": "SkillForge tests",
+    "category": "Productivity",
+    "capabilities": ["Workflow"],
+    "defaultPrompt": ["Use Valid Plugin for this workflow."]
   },
   "skills": "./skills/"
 }

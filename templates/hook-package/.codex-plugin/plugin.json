@@ -2,10 +2,16 @@
   "name": "__SKILLFORGE_NAME__",
   "version": "0.1.0",
   "description": "Codex hook package for __SKILLFORGE_TITLE__ workflows.",
+  "author": {
+    "name": "__SKILLFORGE_AUTHOR__"
+  },
   "interface": {
     "displayName": "__SKILLFORGE_TITLE__",
     "shortDescription": "Lifecycle hooks for __SKILLFORGE_TITLE__ workflows.",
-    "category": "Productivity"
-  },
-  "hooks": "./hooks/hooks.json"
+    "longDescription": "__SKILLFORGE_TITLE__ provides reusable lifecycle automation for Codex workflows.",
+    "developerName": "__SKILLFORGE_AUTHOR__",
+    "category": "Productivity",
+    "capabilities": ["Workflow"],
+    "defaultPrompt": ["Use __SKILLFORGE_TITLE__ to help with this workflow."]
+  }
 }

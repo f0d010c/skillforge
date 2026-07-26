@@ -1,3 +1,5 @@
+import YAML from "yaml";
+
 export interface FrontmatterResult {
   data: Record<string, unknown>;
   body: string;
@@ -16,16 +18,13 @@ export function parseMarkdownFrontmatter(markdown: string): FrontmatterResult | 
 
   const raw = normalized.slice(4, end);
   const body = normalized.slice(end + 5);
-  const data: Record<string, unknown> = {};
-
-  for (const line of raw.split("\n")) {
-    const match = /^([A-Za-z0-9_-]+):\s*(.*)$/.exec(line);
-    if (!match) {
-      continue;
+  try {
+    const data = YAML.parse(raw);
+    if (!data || typeof data !== "object" || Array.isArray(data)) {
+      return null;
     }
-    const [, key, value] = match;
-    data[key] = value.replace(/^["']|["']$/g, "");
+    return { data: data as Record<string, unknown>, body };
+  } catch {
+    return null;
   }
-
-  return { data, body };
 }

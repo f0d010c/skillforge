@@ -4,9 +4,10 @@
 
 This runs the agent skill/plugin files through SkillForge and fixes a few publish-readiness issues:
 
-- aligns plugin manifest paths with `./`-relative plugin-root paths
+- aligns the plugin manifest with the current ingestion contract
 - improves skill trigger descriptions
 - fixes missing or stale metadata references
+- verifies the packaged archive contains required hidden manifests
 
 ## Validation
 

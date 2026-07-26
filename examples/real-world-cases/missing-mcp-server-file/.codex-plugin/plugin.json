@@ -2,11 +2,16 @@
   "name": "missing-mcp-server-file",
   "version": "0.1.0",
   "description": "Example plugin with a manifest that references an MCP config file missing from the package.",
+  "author": { "name": "SkillForge examples" },
   "skills": "./skills/",
-  "mcpServers": "./mcp.json",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Missing MCP Server File",
     "shortDescription": "Shows missing manifest file detection.",
-    "category": "Developer Tools"
+    "longDescription": "An example current-contract plugin whose .mcp.json file is deliberately missing.",
+    "developerName": "SkillForge examples",
+    "category": "Developer Tools",
+    "capabilities": ["MCP"],
+    "defaultPrompt": ["Use Missing MCP Server File for this workflow."]
   }
 }

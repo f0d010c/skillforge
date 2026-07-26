@@ -1,10 +1,25 @@
-import { describe, expect, it } from "vitest";
+import os from "node:os";
+import path from "node:path";
+import fs from "fs-extra";
+import { afterEach, describe, expect, it } from "vitest";
 import { compatCommand } from "../src/commands/compat.js";
 import { lintPath } from "../src/lib/lint.js";
 import { formatLintResult } from "../src/lib/reporters.js";
 
 const fixture = (name: string) => `tests/fixtures/${name}`;
 const realWorldCase = (name: string) => `examples/real-world-cases/${name}`;
+const temporaryRoots: string[] = [];
+
+afterEach(async () => {
+  await Promise.all(temporaryRoots.splice(0).map((directory) => fs.remove(directory)));
+});
+
+async function temporaryFixture(name: string): Promise<string> {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "skillforge-lint-"));
+  temporaryRoots.push(root);
+  await fs.copy(fixture(name), root);
+  return root;
+}
 
 describe("lintPath", () => {
   it("passes a valid instruction-only skill", async () => {
@@ -112,16 +127,55 @@ describe("lintPath", () => {
     expect(result.issues.map((issue) => issue.code)).toContain("plugin.mcpServers.args-shape");
   });
 
-  it("flags plugin-level resources referenced by skills but omitted from marketplace includes", async () => {
+  it("rejects the obsolete plugin include field", async () => {
     const result = await lintPath(fixture("plugin-missing-include"), { profile: "marketplace" });
-    const issue = result.issues.find((item) => item.code === "plugin.include.resource-missing");
-    expect(issue?.level).toBe("error");
-    expect(issue?.impact).toBe("blocking");
+    expect(result.issues.map((issue) => issue.code)).toContain("plugin.manifest.invalid");
+    expect(result.issues[0]?.message).toContain("Unrecognized key");
   });
 
-  it("validates manifest include paths", async () => {
-    const result = await lintPath(fixture("plugin-missing-include"), { profile: "marketplace" });
-    expect(result.issues.map((issue) => issue.code)).not.toContain("reference.missing");
+  it("rejects unresolved plugin manifest placeholders", async () => {
+    const root = await temporaryFixture("valid-plugin");
+    const manifestPath = path.join(root, ".codex-plugin", "plugin.json");
+    const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")) as Record<string, unknown>;
+    manifest.description = "[TODO: explain this plugin]";
+    await fs.writeJson(manifestPath, manifest);
+
+    const result = await lintPath(root);
+    expect(result.issues.map((issue) => issue.code)).toContain("plugin.manifest.placeholder");
+  });
+
+  it("validates canonical app companion entries", async () => {
+    const root = await temporaryFixture("valid-plugin");
+    const manifestPath = path.join(root, ".codex-plugin", "plugin.json");
+    const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")) as Record<string, unknown>;
+    manifest.apps = "./.app.json";
+    await fs.writeJson(manifestPath, manifest);
+    await fs.writeJson(path.join(root, ".app.json"), {
+      apps: { demo: { category: "", unsupported: true } },
+      extra: true
+    });
+
+    const result = await lintPath(root);
+    expect(result.issues.map((issue) => issue.code)).toEqual(
+      expect.arrayContaining([
+        "plugin.apps.unknown-field",
+        "plugin.apps.entry-unknown-field",
+        "plugin.apps.id-missing",
+        "plugin.apps.category-invalid"
+      ])
+    );
+  });
+
+  it("requires the canonical mcpServers wrapper in .mcp.json", async () => {
+    const root = await temporaryFixture("valid-plugin");
+    const manifestPath = path.join(root, ".codex-plugin", "plugin.json");
+    const manifest = JSON.parse(await fs.readFile(manifestPath, "utf8")) as Record<string, unknown>;
+    manifest.mcpServers = "./.mcp.json";
+    await fs.writeJson(manifestPath, manifest);
+    await fs.writeJson(path.join(root, ".mcp.json"), { demo: { command: "node" } });
+
+    const result = await lintPath(root);
+    expect(result.issues.map((issue) => issue.code)).toContain("plugin.mcpServers.shape");
   });
 
   it("flags README local paths that are not present in marketplace bundles", async () => {

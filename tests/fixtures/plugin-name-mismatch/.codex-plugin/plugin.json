@@ -1,4 +1,15 @@
 {
   "name": "different-name",
-  "version": "0.1.0"
+  "version": "0.1.0",
+  "description": "A complete plugin fixture with a deliberately mismatched folder name.",
+  "author": { "name": "SkillForge tests" },
+  "interface": {
+    "displayName": "Different Name",
+    "shortDescription": "Tests plugin folder name mismatch.",
+    "longDescription": "A current-contract fixture whose manifest and folder names differ.",
+    "developerName": "SkillForge tests",
+    "category": "Development & Workflow",
+    "capabilities": ["Workflow"],
+    "defaultPrompt": ["Use Different Name for this workflow."]
+  }
 }

@@ -22,6 +22,7 @@ export interface SkillForgeConfig {
   examples?: Array<{
     prompt: string;
     shouldTrigger: boolean;
+    expectedSkill?: string;
   }>;
   checks?: {
     maxSkillMdLines?: number;

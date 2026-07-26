@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Command, InvalidArgumentError } from "commander";
+import fs from "node:fs";
 import { initCommand, type InitKind } from "./commands/init.js";
 import { lintCommand } from "./commands/lint.js";
 import { doctorCommand } from "./commands/doctor.js";
@@ -10,11 +11,13 @@ import type { ReportFormat } from "./lib/reporters.js";
 import type { LintProfile } from "./types.js";
 
 const program = new Command();
+const packageVersion = JSON.parse(fs.readFileSync(new URL("../package.json", import.meta.url), "utf8"))
+  .version as string;
 
 program
   .name("agent-skillforge")
   .description("Creator tooling for agent skills and plugins.")
-  .version("0.3.2")
+  .version(packageVersion)
   .exitOverride();
 
 program
@@ -22,6 +25,7 @@ program
   .argument("<kind>", "skill or plugin", parseKind)
   .argument("[path]", "output path", ".")
   .option("-n, --name <name>", "skill/plugin name")
+  .option("-a, --author <name>", "plugin author or developer name")
   .option("-t, --template <template>", "template name")
   .option("--force", "merge into a non-empty destination")
   .action(async (kind: InitKind, outputPath: string, options) => {
@@ -33,7 +37,10 @@ program
   .argument("[path]", "skill or plugin path", ".")
   .option("-f, --format <format>", "text, json, or sarif", parseFormat, "text")
   .option("--profile <profile>", "source or marketplace", parseProfile, "source")
-  .option("--strict", "include advisory checks such as description quality, large skill bodies, unreferenced scripts, and plugin name/folder mismatch")
+  .option(
+    "--strict",
+    "include advisory checks such as description quality, large skill bodies, unreferenced scripts, and plugin name/folder mismatch"
+  )
   .action(async (targetPath: string, options: { format: ReportFormat; strict?: boolean; profile: LintProfile }) => {
     const result = await lintCommand(targetPath, options.format, { strict: options.strict, profile: options.profile });
     console.log(result.output);

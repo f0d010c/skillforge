@@ -9,7 +9,7 @@ import type { SkillForgeConfig } from "../types.js";
 
 export async function smokeCommand(targetPath: string): Promise<{ output: string; exitCode: number }> {
   const absolute = path.resolve(targetPath);
-  const lines = [`SkillForge smoke: ${absolute}`];
+  const lines = [`SkillForge static smoke: ${absolute}`];
   const lint = await lintPath(absolute);
   const errors = countErrors(lint.issues);
   if (errors > 0) {
@@ -26,10 +26,21 @@ export async function smokeCommand(targetPath: string): Promise<{ output: string
   }
 
   for (const [index, example] of examples.entries()) {
-    const score = await promptMatchScore(absolute, example.prompt);
-    const passed = example.shouldTrigger ? score >= 2 : score < 2;
+    const scores = await promptMatchScores(absolute, example.prompt);
+    const best = scores[0];
+    const expected = example.expectedSkill
+      ? scores.find((candidate) => candidate.name === example.expectedSkill)
+      : undefined;
+    const score = expected?.score ?? best?.score ?? 0;
+    const passed = example.shouldTrigger
+      ? example.expectedSkill
+        ? score >= 2 && best?.name === example.expectedSkill
+        : score >= 2
+      : (best?.score ?? 0) < 2;
     lines.push(`${passed ? "OK  " : "FAIL"} example ${index + 1}: ${example.prompt}`);
-    lines.push(`     match score: ${score}`);
+    lines.push(
+      `     match: ${best?.name ?? "none"} (${best?.score ?? 0})${example.expectedSkill ? `; expected ${example.expectedSkill} (${score})` : ""}`
+    );
     if (!passed) {
       return { output: lines.join("\n"), exitCode: 1 };
     }
@@ -38,10 +49,10 @@ export async function smokeCommand(targetPath: string): Promise<{ output: string
   return { output: lines.join("\n"), exitCode: 0 };
 }
 
-async function promptMatchScore(root: string, prompt: string): Promise<number> {
+async function promptMatchScores(root: string, prompt: string): Promise<Array<{ name: string; score: number }>> {
   const skillFiles = await findSkillFiles(root);
   const promptTokens = tokenize(prompt);
-  let best = 0;
+  const scores: Array<{ name: string; score: number }> = [];
 
   for (const file of skillFiles) {
     const parsed = parseMarkdownFrontmatter(await fs.readFile(file, "utf8"));
@@ -51,10 +62,10 @@ async function promptMatchScore(root: string, prompt: string): Promise<number> {
     const descriptionTokens = tokenize(`${name} ${description}`);
     const overlap = Array.from(descriptionTokens).filter((token) => promptTokens.has(token)).length;
     const explicit = prompt.includes(`$${name}`) || prompt.toLowerCase().includes(name.replaceAll("-", " "));
-    best = Math.max(best, overlap + (explicit ? 2 : 0));
+    scores.push({ name, score: overlap + (explicit ? 2 : 0) });
   }
 
-  return best;
+  return scores.sort((a, b) => b.score - a.score || a.name.localeCompare(b.name));
 }
 
 async function findSkillFiles(root: string): Promise<string[]> {
@@ -80,7 +91,19 @@ async function findSkillFiles(root: string): Promise<string[]> {
 }
 
 function tokenize(text: string): Set<string> {
-  const stop = new Set(["this", "that", "with", "from", "when", "use", "skill", "codex", "needs", "workflow", "workflows"]);
+  const stop = new Set([
+    "this",
+    "that",
+    "with",
+    "from",
+    "when",
+    "use",
+    "skill",
+    "codex",
+    "needs",
+    "workflow",
+    "workflows"
+  ]);
   return new Set(
     text
       .toLowerCase()
