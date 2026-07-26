@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.4.0 - 2026-07-27
 
 - Aligned plugin and skill validation with the current Codex ingestion contract.
 - Replaced handwritten frontmatter parsing with full YAML parsing.

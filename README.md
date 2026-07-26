@@ -160,7 +160,7 @@ Unknown configuration keys are errors so misspelled checks cannot silently disap
 
 ## GitHub Action
 
-After 0.4.0 is released, pin that release:
+Pin the current release:
 
 ```yaml
 name: SkillForge
